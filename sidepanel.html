@@ -8,24 +8,25 @@
 </head>
 <body>
   <header class="header">
-    <img class="brand-icon" src="icons/logo.png" alt="">
-    <div class="brand"><strong>Domein</strong><small>Surface research</small></div>
-    <div class="header-state" data-state="ready"><i></i><span id="statStatus">Ready</span></div>
+    <div class="header-top">
+      <img class="brand-icon" src="icons/logo.png" alt="">
+      <div class="brand"><strong>Domein</strong><small>Surface research</small></div>
+      <div class="status-stack">
+        <div class="header-state" data-state="ready"><i></i><span id="statStatus">Ready</span></div>
+        <div id="statusDetail" class="status-detail">Waiting for a site</div>
+      </div>
+    </div>
+    <div class="header-controls">
+      <div class="target-input">
+        <svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#search"></use></svg>
+        <input id="domain" aria-label="Search domain" placeholder="example.com" autocomplete="off" spellcheck="false">
+        <button id="activeTab" type="button" title="Use current tab domain" aria-label="Use current tab domain"><svg class="ui-icon"><use href="icons/ui/sprite.svg#scan-search"></use></svg></button>
+      </div>
+      <button id="start" class="scan-button" type="button"><span>Start scan</span><svg class="ui-icon"><use href="icons/ui/sprite.svg#arrow-right"></use></svg></button>
+    </div>
   </header>
 
   <main>
-    <section class="target-card">
-      <label for="domain">TARGET DOMAIN</label>
-      <div class="target-input">
-        <svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#search"></use></svg>
-        <input id="domain" placeholder="example.com" autocomplete="off" spellcheck="false">
-        <button id="activeTab" type="button" title="Use current tab domain" aria-label="Use current tab domain"><svg class="ui-icon"><use href="icons/ui/sprite.svg#scan-search"></use></svg></button>
-      </div>
-      <label class="authorize"><input id="authorized" type="checkbox" checked disabled><span>Authorized to assess this domain</span></label>
-      <button id="start" class="scan-button" type="button"><span>Start scan</span><svg class="ui-icon"><use href="icons/ui/sprite.svg#arrow-right"></use></svg></button>
-      <div id="statusDetail" class="status-detail">Ready to scan</div>
-    </section>
-
     <section class="metrics" aria-label="Scan totals">
       <div class="metric"><span><svg class="ui-icon"><use href="icons/ui/sprite.svg#globe"></use></svg>HOSTS</span><strong id="statSubs">—</strong></div>
       <div class="metric"><span><svg class="ui-icon"><use href="icons/ui/sprite.svg#route"></use></svg>ROUTES</span><strong id="statEndpoints">—</strong></div>

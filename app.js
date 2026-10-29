@@ -45,7 +45,7 @@ async function startScan() {
     state.history = [state.data, ...scans.filter(s => s.root !== root || s.started !== state.data.started)].slice(0, MAX_STORED_SCANS);
     await chrome.storage.local.set({ scans: state.history });
     updateStats(); render();
-    setStatus("Complete", `${state.data.liveHosts.length} hosts · ${state.data.sourceFilesScanned} source files · ${state.data.sourceMapsScanned} maps${state.data.hostScanLimited || state.data.sourceScanLimited ? " · scan cap reached" : ""}${state.data.sourceInventoryLimited ? " · inventory shortened" : ""}`);
+    setStatus("Complete", `${new Date(state.data.completed).toLocaleString()} · ${state.data.liveHosts.length} hosts · ${state.data.sourceFilesScanned} source files · ${state.data.sourceMapsScanned} maps${state.data.hostScanLimited || state.data.sourceScanLimited ? " · scan cap reached" : ""}${state.data.sourceInventoryLimited ? " · inventory shortened" : ""}`);
     toast(`Found ${state.data.subdomains.length} hosts and ${state.data.endpoints.length} endpoint references.`);
   } catch (e) { setStatus("Error", e.message); toast(`Scan stopped: ${e.message}`); }
   finally {

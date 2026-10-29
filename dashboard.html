@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f4f7fb">
+    <title>Domein Research</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-mark" src="icons/logo.png" alt="">
+          <div class="brand-copy">
+            <div class="eyebrow">RESEARCH WORKSPACE</div>
+            <h1>Domein <span>Research</span></h1>
+          </div>
+        </div>
+        <div class="top-actions">
+          <span class="local-pill"><i aria-hidden="true"></i> Results stored locally</span>
+          <button id="exportTop" class="button subtle" type="button">Export report <span aria-hidden="true">↓</span></button>
+        </div>
+      </header>
+
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <h2 id="hero-title">Subdomains and endpoints</h2>
+        </div>
+        <div class="hero-orbit" aria-hidden="true"><span></span><span></span><span></span><i></i></div>
+      </section>
+
+      <section class="scope-card" aria-labelledby="scope-title">
+        <div class="scope-heading">
+          <div>
+            <div class="eyebrow">NEW ASSESSMENT</div>
+            <h3 id="scope-title">Define your authorized scope</h3>
+          </div>
+          <span class="scope-lock">
+            <svg aria-hidden="true" viewBox="0 0 20 20"><rect x="4" y="8" width="12" height="9" rx="2"></rect><path d="M6.5 8V6a3.5 3.5 0 0 1 7 0v2"></path></svg>
+            Access is requested when discovery starts
+          </span>
+        </div>
+        <div class="scope-form">
+          <div class="input-wrap">
+            <svg aria-hidden="true" viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.5"></circle><path d="m13 13 4 4"></path></svg>
+            <label class="sr-only" for="domain">Root domain</label>
+            <input id="domain" placeholder="Enter a root domain, e.g. example.com" autocomplete="off" spellcheck="false">
+            <button id="activeTab" class="icon-button" type="button" title="Use current tab domain" aria-label="Use current tab domain">
+              <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M5 15 15 5M6 5h9v9"></path></svg>
+            </button>
+          </div>
+          <button id="start" class="button primary" type="button"><span>Start discovery</span><b aria-hidden="true">→</b></button>
+        </div>
+        <div class="scope-bottom">
+          <label class="authorize"><input id="authorized" type="checkbox" checked disabled><span>I own this domain or have written authorization to assess it.</span></label>
+          <div class="scope-meta">Chrome requests access only for this root and its subdomains.</div>
+        </div>
+      </section>
+
+      <section class="stats" aria-label="Assessment summary">
+        <div class="stat">
+          <span>SUBDOMAINS</span>
+          <strong id="statSubs">—</strong>
+          <small>From public certificate data</small>
+        </div>
+        <div class="stat">
+          <span>ENDPOINTS</span>
+          <strong id="statEndpoints">—</strong>
+          <small>References in pages and scripts</small>
+        </div>
+        <div class="stat">
+          <span>INDICATORS</span>
+          <strong id="statIndicators">—</strong>
+          <small>Local pattern matches</small>
+        </div>
+        <div class="stat stat-status">
+          <span>ASSESSMENT STATUS</span>
+          <strong id="statStatus" class="status-text" aria-live="polite">Ready</strong>
+          <small id="statusDetail">Waiting for a target</small>
+        </div>
+      </section>
+
+      <section class="workspace" aria-label="Assessment results">
+        <div class="workspace-toolbar">
+          <nav class="tabs" id="tabs" role="group" aria-label="Filter report sections">
+            <button class="tab selected" type="button" data-tab="overview" aria-pressed="true">Overview <em id="countOverview">0</em></button>
+            <button class="tab" type="button" data-tab="subdomains" aria-pressed="false">Subdomains <em id="countSubdomains">0</em></button>
+            <button class="tab" type="button" data-tab="endpoints" aria-pressed="false">Endpoints <em id="countEndpoints">0</em></button>
+            <button class="tab" type="button" data-tab="findings" aria-pressed="false">Sensitive data <em id="countFindings">0</em></button>
+          </nav>
+          <div class="table-actions">
+            <label class="sr-only" for="filter">Filter results</label>
+            <div class="filter-wrap">
+              <svg aria-hidden="true" viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.5"></circle><path d="m13 13 4 4"></path></svg>
+              <input id="filter" class="filter" placeholder="Filter results">
+            </div>
+            <label class="sr-only" for="format">Export format</label>
+            <select id="format" class="format-select">
+              <option value="json">JSON</option>
+              <option value="csv">CSV</option>
+              <option value="txt">TXT</option>
+            </select>
+            <button id="export" class="button export" type="button">Export</button>
+          </div>
+        </div>
+        <div class="panel" id="panel" aria-live="polite" aria-relevant="additions text"></div>
+      </section>
+
+      <footer>
+        <span class="footer-brand">DOMEIN <b>RESEARCH</b></span>
+        <span class="footer-note">Results stay in this browser unless you export them.</span>
+        <a href="README.md">Documentation <span aria-hidden="true">↗</span></a>
+      </footer>
+    </main>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,472 @@
+Skip to main contentAccessibility help
+AI Mode
+All
+Short videos
+Videos
+Forums
+More
+Upgrade
+
+
+
+
+best chrome extension to get api endpoints automatically.. do a research in all articles
+Based on extensive tech documentation, developer forums, and security analysis, the best tool to automatically extract API endpoints as you browse is APIsec BOLT. 
+
+YouTube
+·APIsec University
+Unlike general HTTP debuggers, these specialized extensions passively intercept your active browser traffic, filter out noise (like CSS and images), and map out functional backend endpoints automatically.
+Here are the top-rated Chrome extensions purpose-built for automatic API endpoint discovery, categorized by their primary use cases:
+1. APIsec BOLT — Best for Automated OpenAPI/Swagger Generation
+How it works: It runs silently as a side panel UI. As you browse and interact with a web application naturally, it automatically captures live traffic, isolates true API calls, and organizes them by method and structure. 
+
+YouTube
+·APIsec University
+ +3
+Key Advantage: It features a "high confidence endpoints" filter to strip out tracking cookies, images, and static assets. With one click, you can export the automatically mapped endpoints directly into an OpenAPI Specification (OAS) file or a Postman collection. 
+
+Chrome Web Store
+ +1
+2. EndPointer — Best for Security Auditing & Bug Bounties
+How it works: Built specifically for security researchers and web testers, it parses active tabs to extract endpoints, maps their source locations within the application's scripts, and classifies URLs. 
+
+Chrome Web Store
+Key Advantage: It includes proxy capture capabilities and custom scope settings so you only extract endpoints from specific domains, making it highly effective for penetration testing. 
+
+Chrome Web Store
+3. API Finder — Best for Threat Mapping & Risk Analysis
+How it works: Acts as a passive attack-surface mapper. It populates a live inventory of hidden routes and structural parameters without doing any active, aggressive scanning. 
+
+Chrome Web Store
+Key Advantage: It automatically flags security risks, highlighting discovered endpoints that suffer from authentication gaps or exposed debug parameters. 
+
+Chrome Web Store
+4. API Context Extractor — Best for Full-Stack Developers
+How it works: Rather than just logging the URL string, this tool monitors JSON responses from the network layer and automatically derives the schema. 
+
+Chrome Web Store
+Key Advantage: It instantly converts the captured endpoints' data structures into production-ready TypeScript interfaces, Zod schemas, or Python Pydantic models on the fly. 
+
+Chrome Web Store
+Directly Comparing the Top Options
+Extension	Primary Output	Target Audience	Key Differentiator
+APIsec BOLT	OpenAPI (OAS) / Postman	QA & Developers	Zero-setup, live traffic documentation tracking
+EndPointer	URL Lists & Source Mapping	Bug Bounty / Pentesters	Pinpoints where the endpoint sits in the client code
+API Finder	Risk Reports & Schemas	Security Teams	Automated vulnerability and auth-gap tagging
+API Context Extractor	TypeScript / Zod / Pydantic	Frontend/Backend Devs	Automatically writes types based on endpoint names
+To narrow down the ideal choice for your architecture, could you let me know:
+What is your primary goal? (e.g., documenting an undocumented system, bug hunting, or reverse-engineering a competitor's frontend?)
+What export format do you need the endpoints in? (e.g., Postman collections, raw URLs, or Swagger JSON?)
+
+
+
+
+
+YouTube
+·
+APIsec University
+YouTube
+appsisec Bolt is a browser extension that automatically discovers APIs from live traffic no proxies no setup just browse and captu...
+
+3:42
+
+Chrome Web Store
+API finder
+Overview API Finder is a passive API attack-surface mapper that runs silently in your browser. As you navigate web applications, i...
+
+Chrome Web Store
+API Context Extractor - Chrome Web Store
+Extracts API JSON responses and generates strictly typed TypeScript interfaces. API Context Extractor: JSON to TS/Zod/Pydantic Sto...
+i need the best in extracting and hunting swagger uis
+If your target is specifically hunting down, discovering, and mapping hidden or exposed Swagger UI instances, general endpoint extractors won't suffice. You need utilities designed to detect the structural signature of Swagger layouts (#swagger-ui) or passively look for common document endpoints (like /swagger-ui.html, /v2/api-docs, or /openapi.json).
+The best Chrome extensions built exactly for finding, enhancing, and exporting Swagger UIs include:
+1. The Swagger Check — Best for Passive Hunting
+How it works: It acts as a silent, background automated hunter. Whenever you visit a website or web app, it instantly sends a background request to common /swagger endpoints and inspects the site's structural framework. 
+
+Chrome Web Store
+The Payoff: If an active Swagger UI or OpenAPI endpoint is discovered on that application layer, the extension's icon instantly changes color to alert you, saving you from manual fuzzing or inspecting dev tools. 
+
+Chrome Web Store
+2. Swagger UI Authorizer — Best for Multi-Profile Identification
+How it works: This extension is specifically coded to watch your active tabs for the #swagger-ui DOM selector element.
+The Payoff: Once it hunts down a Swagger UI, it locks onto it and gives you a localized control hub. It allows you to build multiple authorization schemas (Bearer tokens, API keys, basic auth) to map and test the discovered interface across completely different environments or permission rings without re-logging. 
+
+Chrome Web Store
+3. Swagger UI Enhancement — Best for Rapid Extraction & Filtering
+How it works: When you stumble upon a massive, disorganized Swagger page containing hundreds of undocumented routes, this tool maps a fixed Table of Contents navigation side panel directly over the native UI. 
+
+Chrome Web Store
+The Payoff: It lets you hit Cmd+K / Ctrl+K to search the entire Swagger file instantly by HTTP method, tag, or path name. It also includes request body persistence, allowing you to cycle through endpoints while retaining test payloads without losing your spot. 
+
+Chrome Web Store
+4. Swagger UI Copy Full Details Extension — Best for AI & Documentation Export
+How it works: Standard Swagger instances only let you copy isolated, raw request URLs. This extension inserts custom macros right next to the Swagger UI route elements.
+The Payoff: With one click, it extracts the full endpoint structure—including parameters, headers, query variables, and response targets—and converts it all into highly clean, structured Markdown. This makes it incredibly easy to pipe discovered endpoints instantly into AI tools like ChatGPT or Claude for risk analysis. 
+
+Reddit
+·r/FastAPI
+Swagger Hunting & Extraction Summary
+Tool	Focus	Best Feature for Hunting
+The Swagger Check	Discovery	Changes icon status automatically when /swagger is detected
+Swagger UI Authorizer	Mapping & Auth	Instantly grabs the #swagger-ui wrapper for auth manipulation
+Swagger UI Enhancement	Filtering	Deep indexed global search (Ctrl+K) for cluttered UIs
+Swagger-UI Copy Details	Extraction	One-click Markdown data dumps of individual or tagged endpoint structures
+Are you searching for these Swagger UIs on public-facing production domains, or are you auditing internal, locally hosted development environments? Let me know so I can suggest specific directory paths or proxy settings to pair with these tools.
+
+
+
+
+
+Chrome Web Store
+Swagger UI Enhancement - Chrome Web Store
+Enhances Swagger UI with token management, API search, and body persistence features Transform your Swagger UI experience with pow...
+
+Chrome Web Store
+Swagger UI Authorizer - Chrome Web Store
+Overview: Swagger UI Authorizer is a Chrome extension (v1.2.0, 37.77KiB) that automatically authorizes requests on Swagger UI page...
+
+
+Chrome Web Store
+The Swagger Check - Chrome Web Store
+The Swagger Check The Swagger Check Chrome extension will send a GET request to the /swagger endpoint of the website you are curre...
+
+what's the one that finds both subdomains and endpoints?
+If you want a single tool that maps both subdomains and active endpoints at the same time, the absolute best browser tool for this job is FindSomething. 
+How it Works
+FindSomething operates like a passive background target analyzer. When you load a website or web app, it scrapes and deep-parses all the page sources, embedded HTML links, and loaded JavaScript source files. 
+Instead of just giving you a messy wall of data, it filters everything into cleanly isolated tabs: 
+The Subdomain Section: It strips down every single third-party and first-party domain referenced in the source files, giving you a comprehensive layout of the target's corporate subdomains (e.g., api.target.com, dev.target.com, staging.target.com). 
+
+Medium
+·Muhammed Asfan | Cybersecurity Researcher
+ +1
+The Path / Endpoint Section: It isolates directory paths, API routes, and hidden backend endpoints (e.g., /api/v2/users, /v2/api-docs) discovered within those script wrappers. 
+
+Medium
+·Muhammed Asfan | Cybersecurity Researcher
+ +1
+Added Bonus Features
+Beyond mapping endpoints and subdomains, FindSomething is built heavily for security auditing, meaning it automatically flags: 
+Exposed cloud storage keys (AWS S3 buckets, Google Cloud storage URLs)
+Leaked API tokens, private RSA keys, and JWT secrets
+Leaked internal corporate email addresses 
+Alternative: What if you aren't using a browser extension?
+If you are hunting targets from a terminal window rather than inside Google Chrome, the absolute gold standard tool for this exact use-case is APIDetector. It is a command-line script specifically designed to take a large list of subdomains, automatically scan them, and extract hidden Swagger/OpenAPI endpoints across all of them in bulk. 
+
+GitHub
+ +1
+Would you like me to walk you through how to use FindSomething's interface to filter for specific paths, or do you need a Google Dorking cheat sheet to find hidden subdomains that expose Swagger documentation? 
+
+Medium
+·Muhammed Asfan | Cybersecurity Researcher
+
+
+
+
+
+Medium
+·
+Muhammed Asfan | Cybersecurity Researcher
+How I Hunt for Swagger UI on Real Targets (A Practical Guide ...
+20 Dec 2025 — Step 1: The “Lazy” Browser Check. When you open a new target, don't overcomplicate it. Start with the main domain and any obvious ...
+
+
+GitHub
+APIDetector: Efficiently scan for exposed Swagger endpoints ...
+GitHub - brinhosa/apidetector: APIDetector: Efficiently scan for exposed Swagger endpoints across web domains and subdomains. Supp...
+
+
+
+YouTube
+·
+SecureTechIn
+APIDetector Security Tutorial: How to Find Hidden Swagger APIs
+9 Sept 2026 — APIDetector probes common Swagger & Open API documentation paths across domains to locate interface specifications &...
+
+6:37
+how find something is built? how can i get it's source codes?
+How FindSomething is Built
+FindSomething is built entirely on standard WebExtension technologies using HTML, CSS, and vanilla JavaScript. It is a passive information disclosure scanner that inspects client-side text data. Its core architecture consists of these fundamental building blocks: 
+
+GitHub
+ +3
+manifest.json (The Blueprint): This file tells the browser what permissions the extension needs (like webRequest or activeTab) and maps out which JavaScript files to run. 
+
+Reddit
+·KamilRizatdinovRDT
+ +1
+Content Scripts (content.js): Scripts that execute directly in the context of the web page you are browsing. They passively scrape the active DOM, read the page's HTML structure, and grab embedded links. 
+
+Chrome Web Store
+ +3
+Background/Service Workers (background.js): This component monitors background network operations. It hooks into the browser's network layer to catch and read incoming JavaScript (.js) files and JSON payloads fetched by the page. 
+
+GitHub
+ +1
+Regular Expression (Regex) Matching Engines: Inside the extension code, the core logic relies heavily on pre-configured RegEx patterns. When content scripts or background workers look at text data, these regex modules flag specific syntax patterns like subdomains, API directory paths, AWS S3 bucket links, or exposed crypto tokens.
+Popup UI (popup.html / popup.js): The clean interface you see when clicking the extension icon. It receives the organized data structures from the content scripts and maps them out into separate, filterable categories. 
+
+GitHub
+How to Get Its Source Code
+FindSomething is entirely open-source. You can easily obtain the complete, raw source code using either of these methods: 
+
+YouTube
+·One Scales
+Method 1: The Official GitHub Repository (Recommended)
+The tool's developers have published the complete structural code online.
+Visit the official FindSomething GitHub Repository.
+Click the green Code button at the top right of the file layout.
+Select Download ZIP from the dropdown menu to download the complete directory structure to your computer. 
+
+GitHub
+ +2
+Method 2: Extracting it Directly From Chrome
+Since Chrome extensions run locally on your system as raw JavaScript, you can look at the files already running on your browser: 
+
+www.benjaminrancourt.ca
+ +1
+Open Chrome and type chrome://extensions/ into the URL bar. 
+
+GitHub
+Turn on Developer mode using the toggle switch in the top right corner. 
+
+Medium
+·Suriya kumar Vijayanayagam
+ +1
+Find the FindSomething card and look for its unique alphanumeric ID (e.g., kfhniponecokdefffkpagipffdefeldb...). 
+
+Chrome Web Store
+ +1
+Navigate to your computer's local extension directory to view the raw manifest.json, .js, and .html files:
+Windows: %localappdata%\Google\Chrome\User Data\Default\Extensions\[Extension_ID]
+Mac: ~/Library/Application Support/Google/Chrome/Default/Extensions/[Extension_ID] 
+
+Reddit
+·KamilRizatdinovRDT
+ +1
+If you want, let me know:
+Are you planning to modify or add your own custom Regular Expressions to the source code to find specific token types?
+Do you want instructions on how to load your modified code back into Chrome as an unpacked developer extension?
+I can provide the exact code block layouts to help you customize it.
+
+
+
+
+
+Chrome Web Store
+FindSomething - Chrome Web Store
+Find interesting things in the webpage's source code or JavaScript. This tool is used to quickly extract some interesting informat...
+
+
+
+YouTube
+·
+Matt Crawford
+How to Download From Github (Official Source Code Downloads)
+9 Apr 2026 — How to Download From Github (Official Source Code Downloads) and different code on here freely as repositories. uh you can do the ...
+
+17s
+
+GitHub
+FindSomething/getstarted.html at master - GitHub
+基于chrome、firefox插件的被动式信息泄漏检测工具. Contribute to momosecurity/FindSomething development by creating an account on GitHub. ... Footer ...
+
+whare are some functionalities that are missing in it? or ui experiences
+While FindSomething is excellent for passive extraction, its development has historically focused purely on regex-matching raw text. As web development architectures have shifted toward heavily obfuscated single-page applications (SPAs), users and security researchers have noted several structural and user experience (UX) gaps.
+Here are the key functionalities and UI experiences currently missing in the tool:
+1. Missing Functional Capabilities
+JavaScript Deobfuscation and Un-Minification: Modern web applications bundle and minify their JavaScript using tools like Webpack, Vite, or Terser. FindSomething reads this minified code exactly as-is. It lacks a built-in "Pretty Print" or abstract syntax tree (AST) parser to un-minify or format complex scripts, meaning endpoints buried inside heavily packed variable wrappers can occasionally be missed by raw regex.
+Source Map Parsing: Many modern frontend deployments accidentally expose .js.map files. A major missing feature is the ability to automatically look for, pull down, and reconstruct the original, uncompiled backend directory structure from these source maps to map endpoints back to their exact original source files.
+Active Fuzzing / Direct Testing Interface: FindSomething is strictly a passive scanner. It collects information but does not let you interact with it directly. You cannot right-click an extracted endpoint to change parameters, test for an authentication bypass, or perform a direct custom "Fetch" request to see what payload returns. You must copy the data into an external tool like Postman or Burp Suite.
+Live Traffic Interception: It maps strings discovered in the static files, but it doesn't effectively intercept dynamic, runtime XMLHttpRequests (XHR) or Fetch API requests being generated by the application on the fly.
+2. Missing User Experience (UX) Enhancements
+No Global Search / Dynamic Filtering: While it organizes findings into clean tabs, it lacks a master Ctrl+K search bar to let you quickly filter down results across all tabs. If a site pulls up 500 endpoints and 100 subdomains, you have to scroll through them manually or rely on Chrome's native browser page search.
+Lack of Bulk Export Formats: The UI only supports basic text copying or a flat dump. It misses native configuration setups to format the extracted endpoints directly into structured schema models like an OpenAPI/Swagger JSON blueprint, a Postman Collection, or a clean CSV file sorted by domain authority.
+No Persistent Diffing or State Management: If you browse through multiple pages of a web application, the tool doesn't keep a persistent session history. If you refresh the tab, your previously mapped endpoints disappear. It lacks a timeline view or a "Diff" tool to compare what subdomains were found on Page A versus Page B.
+No "Scope" Lockdown: You cannot easily white-list or black-list specific domains within the configuration. As a result, the tool frequently catches noisy, irrelevant third-party trackers, analytics endpoints (like Google Analytics or Mixpanel), and CDN URLs, cluttering your target view.
+Comparison: FindSomething vs. Modern Alternatives
+Feature	FindSomething	What a Modern Tool Needs
+Extraction Method	Raw Regex on Source Code	Regex + AST Parsing + Live Traffic Sniffing
+Source Maps	Ignored	Automatically downloaded and mapped
+Data Interaction	Read-Only	"Send to Repeater" / Custom Fetch Testing
+Session Control	Clears on Refresh	Persistent Workspace History
+Are you looking to fork the repository and add one of these missing features yourself? If so, tell me which one (e.g., adding an export-to-CSV button or a custom regex filter) and I can help you sketch out the custom JavaScript code needed to modify the extension's popup files!
+
+
+
+
+how can i get https://subdomainfinder.c99.nl/ api to use it in my project?
+To use the C99.nl Subdomain Finder API in your project, you cannot scrape the free frontend utility directly, as it implements rate limiting and client-side challenges. Instead, you must use their official developer platform, C99 API Service. 
+The integration process involves the following steps:
+1. Register and Obtain an API Key
+Navigate to the official C99 API Gateway.
+Click View Plans to purchase an API key. C99 operates on a flat-pricing tier structure (around $25/year for full suite access) and does not offer free trial keys due to historical automation abuse.
+Your login credentials and unique YOUR_API_KEY string will be automatically emailed to you upon registration. 
+
+YouTube
+·NahamSec
+ +2
+2. Understand the Endpoint Syntax
+The endpoint for subdomain enumeration is structured as follows:
+http
+GET https://c99.nl
+Use code with caution.
+key: Your unique authentication key. 
+domain: The target root domain you want to map (e.g., example.com). 
+json: Appending &json=1 (or &json) forces the API server to respond with a clean, structured JSON payload instead of raw string data, making it easier to parse in your code. 
+realtime: (Optional) You can append &realtime=true to instruct the server to perform a live, non-cached depth-scan rather than pulling from their 7-day database cache. 
+3. Implementation Code Examples
+Python Implementation
+Using the standard requests library to fetch and iterate through found subdomains:
+python
+import requests
+
+def fetch_subdomains(target_domain, api_key):
+    url = "https://c99.nl"
+    params = {
+        "key": api_key,
+        "domain": target_domain,
+        "json": 1
+    }
+    
+    try:
+        response = requests.get(url, params=params)
+        data = response.json()
+        
+        if data.get("success") == True:
+            # Safely navigate their standard response dictionary structure
+            subdomains = data.get("subdomains", [])
+            for sub in subdomains:
+                print(f"Found: {sub['subdomain']} (IP: {sub.get('ip', 'N/A')})")
+        else:
+            print(f"API Error: {data.get('error', 'Unknown error occurred')}")
+            
+    except Exception as e:
+        print(f"Connection Failed: {e}")
+
+# Usage
+fetch_subdomains("example.com", "YOUR_ACTUAL_API_KEY")
+Use code with caution.
+Node.js (JavaScript) Implementation
+Using modern asynchronous fetch to retrieve the payload:
+javascript
+async function getSubdomains(targetDomain, apiKey) {
+    const url = `https://c99.nl{apiKey}&domain=${targetDomain}&json=1`;
+    
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log(`Discovered ${data.subdomains.length} subdomains:`);
+            data.subdomains.forEach(item => {
+                console.log(`-> ${item.subdomain} [Cloudflare Protected: ${item.cloudflare || 'No'}]`);
+            });
+        } else {
+            console.error("API Rejected Request:", data.error);
+        }
+    } catch (error) {
+        console.error("Network or parsing error:", error);
+    }
+}
+
+// Usage
+getSubdomains("example.com", "YOUR_ACTUAL_API_KEY");
+Use code with caution.
+Important Developer Safeguards & Limits
+Response Format: Ensure you always pass the JSON variable. If left out, the API defaults to returning a flat HTML string with <br> tags separating the subdomains, which breaks native array parsers.
+Key Protection: Never hardcode your C99 key inside client-side code (like frontend React or pure browser extensions). C99's firewalls dynamically suspend keys that generate leaks or show concurrent requests from vastly different geographic IPs. Always proxy requests through your own backend server.
+Timeout Handling: Subdomain mapping scans can take anywhere from a few seconds to a full minute depending on if the realtime flag triggers deep recursion. Set the network request connection timeout window in your project to at least 60 seconds to prevent premature socket drops. 
+
+YouTube
+·NahamSec
+ +3
+What programming language or framework is your primary project built on? If you are dealing with a massive dataset, let me know so I can help you structure an asynchronous queue system to ensure you don't hit the API rate limit limits!
+
+
+
+
+
+api.c99.nl
+C99 API's - C99's API Service
+C99's API Service 34 quality APIs and growing! Login View plans Fair, flat pricing Sub-second responses Human support 34 APIs onli...
+
+
+Subdomain Finder
+Subdomain Finder - C99.nl
+Definition: Subdomain finder by C99.nl is a tool used to discover subdomains of a given domain by adding a second-level domain to ...
+
+
+api.c99.nl
+C99 API's - FAQ
+JSON Support: Append &json to API URL or click Enable JSON on Overview. Support Contact: support@c99.nl; Telegram or Discord (@c99...
+
+but how this works to get subdomains? https://c99.nl
+Under the hood, platforms like C99.nl map out subdomains using a combination of Passive Reconnaissance (OSINT) and Active DNS Verification. Instead of hacking into a server, the tool gathers public pieces of data left across the internet infrastructure to build a complete architectural picture of a domain.
+Here is exactly how the technical process works behind the scenes when you submit a domain scan:
+1. Scraping Certificate Transparency (CT) Logs (Passive)
+Whenever a company creates a subdomain that uses HTTPS (like ://example.com or ://example.com), they must issue an SSL/TLS certificate for it.
+By law, all certificate authorities (like Let's Encrypt or DigiCert) must log every issued certificate in a public, immutable ledger called a Certificate Transparency Log.
+C99's backend continuously monitors or queries these global public CT logs.
+Even if a company hides a subdomain from their main website, the moment they secure it with an SSL certificate, it becomes permanently visible in these logs.
+2. Aggregating Public DNS Datasets (Passive)
+The scanner doesn't just check the live internet; it maintains a massive historical database of the web. It aggregates data from multiple open-source intelligence (OSINT) sources and massive internet-mapping projects:
+Forward DNS Databases: Utilizing massive, pre-computed databases of known DNS records (like Project Sonar or Rapid7 OpenData).
+Search Engine Scraping: Parsing search engines (Google, Bing, Baidu) using advanced indexing queries to see what subdomains have been crawled and indexed publicly in the past.
+Threat Intelligence Feeds: Gathering historic domain records shared by security platforms.
+3. Active DNS Resolution & Dictionary Fuzzing (Active)
+To find subdomains that might not be indexed or logged anywhere yet, the backend uses active enumeration:
+Dictionary Attacks: The scanner runs through a text file containing hundreds of thousands of common subdomain prefixes (e.g., test, admin, api, vpn, mail, staging, portal).
+Mass DNS Resolvers: It pairs this dictionary list with ultra-fast, automated DNS query pipelines. It blasts thousands of requests per second to public DNS resolvers (like Cloudflare's 1.1.1.1 or Google's 8.8.8.8) asking: "Does ://target.com point to a real IP address?"
+If the DNS server returns an A or CNAME record, the scanner marks it as a live, valid subdomain.
+4. Analyzing Network Routing (Cloudflare & IP Checks)
+Once a list of subdomains is aggregated, C99 runs a final verification check on each one:
+IP Lookups: It resolves the domain to its current hosting IP address.
+Cloudflare Detection: It inspects the network headers and IP blocks to check if the subdomain is hidden behind Cloudflare's proxy network or if it directly exposes the origin server's real IP address.
+Why Companies Can't Easily Hide This
+This is why subdomain finders are so effective for bug bounty hunters and developers. Because DNS records and SSL certificates must be public for the global internet to route traffic to them, tools like C99 simply collect these mandatory public footprints and organize them into a clean, searchable interface.
+Are you trying to prevent your own project's subdomains from being discovered by scanners like this, or are you looking to write your own basic subdomain guessing script in Python? Let me know and we can dive deeper!
+
+
+
+
+does c99 have a desktop app or free source codes?
+No, C99.nl does not provide an official desktop application or publish its proprietary source code. The platform runs strictly as a closed-source, cloud-based SaaS (Software as a Service) to protect its backend infrastructure, optimization algorithms, and massive curated historical databases from being copied or abused.
+However, C99 does provide an official command-line interface (CLI) tool for terminal use, and because the underlying mechanics of subdomain discovery are well-known, there are completely free, open-source alternatives that do exactly what C99 does.
+What C99 Offers Instead
+The Official C99 CLI Tool: While not a graphical desktop app, C99 hosts an official repository for a dedicated Command Line Tool. It allows you to tap into their scanning engine directly from your terminal loop, provided you hook it up to your C99 account API key.
+The Free Web Interface: You can use the core functionalities of the scanner completely free of charge directly via your web browser on their main hub, though it is bound by daily rate limits and web-based queues to prevent scraping.
+Free, Open-Source Alternatives (Get the Source Code)
+If you want a desktop interface, or if you want to look at the exact source code of how professional subdomain scanners are built, you should use these top-tier, industry-standard open-source security tools:
+1. OWASP Amass (The Gold Standard)
+What it is: Built by the Open Web Application Security Project (OWASP), this is the most powerful subdomain mapping engine available.
+How it compares: It uses the exact same techniques as C99 (Certificate Transparency logs, DNS fuzzing, and routing analysis) but is entirely open-source.
+Source Code: github.com
+2. Subfinder (Best for Speed and Automation)
+What it is: A highly optimized modular tool written in Go that gathers subdomains passively using a massive array of online public datasets.
+How it compares: It is incredibly lightweight, easy to integrate into custom scripts, and heavily maintained by the cybersecurity community.
+Source Code: github.com
+3. Spiderfoot (Has a Desktop-Style Web UI)
+What it is: If you want a visual tool with a graphical interface rather than a text terminal, Spiderfoot is an OSINT automation engine that launches a localized web UI on your computer.
+How it compares: It allows you to track targets, run scans, and view your subdomain layout maps as interactive visual charts right in your browser.
+Source Code: github.com
+Would you like me to help you write a simple, raw Python script that queries a free, public Certificate Transparency log (like crt.sh) so you can see how easy it is to build your own mini subdomain extractor?
+
+
+
+
+Skip to previous prompt
+Ask anything
+
+
+
+AI Mode response is ready
+
+ what i seen that can be helpful also for free subdomain finding. Amass = https://github.com/owasp-amass/amass
+subfinder = https://github.com/projectdiscovery/subfinder
+ctlogs.dev
+crt.sh
+certkit.io
+https://github.com/momosecurity/FindSomething
+curl 'https://api.ctlogs.dev/v1/hosts/sdms.gov.rw'
+https://letsencrypt.org/docs/ct-logs/	 . these command line tools are downloadable from github. we can learn how they work and implement them in the domein extension we want to build that is so powerful , 

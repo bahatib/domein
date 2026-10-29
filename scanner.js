@@ -1,6 +1,7 @@
 const MAX_TEXT = 1_000_000, MAX_MAP_TEXT = 2_000_000, MAX_HOST_TEXT = 12_000_000;
-const MAX_HOSTS = 120, CONCURRENCY = 5, MAX_SOURCE_FILES = 40, MAX_SOURCE_MAPS = 5, MAX_IMPORT_DEPTH = 3;
+const MAX_HOSTS = 120, CONCURRENCY = 10, SOURCE_CONCURRENCY = 6, MAX_SOURCE_FILES = 40, MAX_SOURCE_MAPS = 5, MAX_IMPORT_DEPTH = 3;
 const MAX_RECORDED_SOURCE_FILES = 1500;
+const REQUEST_CONCURRENCY = 20;
 // Rwanda RURA numbering plan: mobile NDCs 72/73/77/78/79; fixed NDCs 22/23/25/28.
 const PHONE_PATTERNS = [
   { country: "Rwanda", regex: /(?<!\d)(?:(?:\+?250|000250)[\s().-]*(?:7[23789]|2[2358])(?:[\s().-]*\d){7}|0[\s().-]*(?:7[23789]|2[2358])(?:[\s().-]*\d){7})(?!\d)/g }
@@ -20,10 +21,20 @@ function normalizeHost(value, root) {
   if (!host || host.includes("*") || !inScope(host, root)) return null;
   return host;
 }
-async function timeoutFetch(url, ms = 5000) {
+function createRequestLimiter(limit = REQUEST_CONCURRENCY) {
+  let active = 0;
+  const waiters = [];
+  return async (url, ms = 5000) => {
+  if (active >= limit) await new Promise(resolve => waiters.push(resolve));
+  active++;
   const controller = new AbortController(), timer = setTimeout(() => controller.abort(), ms);
   try { return await fetch(url, { signal: controller.signal, redirect: "follow", credentials: "omit", cache: "no-store" }); }
-  finally { clearTimeout(timer); }
+  finally {
+    clearTimeout(timer);
+    active--;
+    waiters.shift()?.();
+  }
+  };
 }
 function recordSourceFile(result, key, file) {
   if (result.sourceFiles.has(key)) { result.sourceFiles.set(key, file); return; }
@@ -31,27 +42,30 @@ function recordSourceFile(result, key, file) {
   result.sourceFiles.set(key, file);
 }
 
-async function getCertificateHosts(root, maxHosts = MAX_HOSTS) {
+async function getCertificateHosts(root, maxHosts = MAX_HOSTS, request) {
   const hosts = new Set([root, `www.${root}`]);
   const errors = [];
-  try {
-    const response = await timeoutFetch(`https://crt.sh/?q=${encodeURIComponent(`%.${root}`)}&output=json`, 12000);
-    if (!response.ok) throw new Error(`crt.sh returned ${response.status}`);
-    const rows = await response.json();
-    for (const row of rows) for (const item of String(row.name_value || "").split(/[\r\n,]+/)) {
-      const host = normalizeHost(item, root); if (host) hosts.add(host);
-    }
-  } catch (e) { errors.push(`crt.sh: ${e.message}`); }
-  try {
-    const response = await timeoutFetch(`https://api.ctlogs.dev/v1/hosts/${encodeURIComponent(root)}`, 12000);
-    if (!response.ok) throw new Error(`ctlogs.dev returned ${response.status}`);
-    const data = await response.json();
-    const candidates = Array.isArray(data) ? data : (data.hosts || data.subdomains || data.data || []);
-    for (const row of candidates) {
-      const host = normalizeHost(typeof row === "string" ? row : (row.host || row.hostname || row.name || row.subdomain), root);
-      if (host) hosts.add(host);
-    }
-  } catch (e) { errors.push(`ctlogs.dev: ${e.message}`); }
+  const lookups = await Promise.allSettled([
+    (async () => {
+      const response = await request(`https://crt.sh/?q=${encodeURIComponent(`%.${root}`)}&output=json`, 12000);
+      if (!response.ok) throw new Error(`crt.sh returned ${response.status}`);
+      const rows = await response.json();
+      for (const row of rows) for (const item of String(row.name_value || "").split(/[\r\n,]+/)) {
+        const host = normalizeHost(item, root); if (host) hosts.add(host);
+      }
+    })(),
+    (async () => {
+      const response = await request(`https://api.ctlogs.dev/v1/hosts/${encodeURIComponent(root)}`, 12000);
+      if (!response.ok) throw new Error(`ctlogs.dev returned ${response.status}`);
+      const data = await response.json();
+      const candidates = Array.isArray(data) ? data : (data.hosts || data.subdomains || data.data || []);
+      for (const row of candidates) {
+        const host = normalizeHost(typeof row === "string" ? row : (row.host || row.hostname || row.name || row.subdomain), root);
+        if (host) hosts.add(host);
+      }
+    })()
+  ]);
+  for (let i = 0; i < lookups.length; i++) if (lookups[i].status === "rejected") errors.push(`${i ? "ctlogs.dev" : "crt.sh"}: ${lookups[i].reason?.message || "request failed"}`);
   return { hosts: [...hosts].slice(0, maxHosts), limited: hosts.size > maxHosts, errors };
 }
 function extractIndicators(text, source, root, bag, hosts) {
@@ -214,7 +228,7 @@ function analyzeSourceText(text, source, root, result, depth, enqueueSource, enq
     if (siblingMap) enqueueMap(siblingMap, depth);
   }
 }
-async function crawlSourceFiles(initialFiles, root, result, onProgress, emitPartial) {
+async function crawlSourceFiles(initialFiles, root, result, onProgress, emitPartial, request) {
   const sourceQueue = [], mapQueue = [];
   const queuedSources = new Set(), queuedMaps = new Set();
   const limits = result.limits;
@@ -273,11 +287,11 @@ async function crawlSourceFiles(initialFiles, root, result, onProgress, emitPart
   while ((sourceQueue.length && sourceAttempts < limits.maxSourceFiles) || (mapQueue.length && mapAttempts < limits.maxSourceMaps)) {
     if (sourceQueue.length && sourceAttempts < limits.maxSourceFiles) {
       const batch = sourceQueue.splice(0, Math.min(3, limits.maxSourceFiles - sourceAttempts)); sourceAttempts += batch.length;
-      await pool(batch, 3, async file => {
+      await pool(batch, SOURCE_CONCURRENCY, async file => {
         try {
           let text = file.text, finalUrl = file.url, byteSize = text?.length || 0;
           if (text === undefined) {
-            const response = await timeoutFetch(file.url, 7000);
+            const response = await request(file.url, 7000);
             if (!response.ok || !inScope(new URL(response.url).hostname, root)) return;
             const type = response.headers.get("content-type") || "";
             if (!/(javascript|ecmascript|text\/plain|text\/html|text\/x-)/i.test(type) && !/\.(?:m?js|cjs|jsx|ts|tsx|vue)$/i.test(new URL(response.url).pathname)) return;
@@ -292,15 +306,15 @@ async function crawlSourceFiles(initialFiles, root, result, onProgress, emitPart
         } catch {}
       });
     } else {
-      const batch = mapQueue.splice(0, Math.min(2, limits.maxSourceMaps - mapAttempts)); mapAttempts += batch.length;
-      await pool(batch, 2, async file => {
+      const batch = mapQueue.splice(0, Math.min(SOURCE_CONCURRENCY, limits.maxSourceMaps - mapAttempts)); mapAttempts += batch.length;
+      await pool(batch, SOURCE_CONCURRENCY, async file => {
         try {
           if (file.text !== undefined) {
             const bytes = new TextEncoder().encode(file.text).byteLength;
             if (totalText + bytes > limits.maxHostText) { result.sourceScanLimited = true; return; }
             totalText += bytes; analyzeMap(file.text, file.url, file.depth); emitPartial?.(); return;
           }
-          const response = await timeoutFetch(file.url, 7000);
+          const response = await request(file.url, 7000);
           if (!response.ok || !inScope(new URL(response.url).hostname, root)) return;
           const text = await readLimited(response, MAX_MAP_TEXT);
           const bytes = new TextEncoder().encode(text).byteLength;
@@ -319,12 +333,12 @@ async function pool(items, limit, worker) {
 function scanSnapshot(result, inProgress = true) {
   return { root: result.root, started: result.started, completed: inProgress ? null : new Date().toISOString(), inProgress, subdomains: [...result.hosts].sort(), liveHosts: [...result.liveHosts].sort(), endpoints: [...result.endpoints.values()].sort((a,b) => a.url.localeCompare(b.url)), indicators: [...result.indicators.values()].sort((a,b) => a.type.localeCompare(b.type)), swagger: [...result.swagger], sourceFiles: [...result.sourceFiles.values()].sort((a,b) => a.url.localeCompare(b.url)), sourceFilesScanned: result.sourceFilesScanned, sourceMapsScanned: result.sourceMapsScanned, sourceScanLimited: result.sourceScanLimited, sourceInventoryLimited: result.sourceInventoryLimited, hostScanLimited: result.hostScanLimited, failedHosts: [...result.failedHosts], sourceErrors: [...result.sourceErrors] };
 }
-async function scanHost(host, root, result, onProgress, emitPartial) {
+async function scanHost(host, root, result, onProgress, emitPartial, request) {
   const base = `https://${host}/`;
   let response, source = base;
-  try { response = await timeoutFetch(base); }
+  try { response = await request(base); }
   catch (e) {
-    try { source = `http://${host}/`; response = await timeoutFetch(source); }
+    try { source = `http://${host}/`; response = await request(source); }
     catch { result.failedHosts.push(host); return; }
   }
   if (!response.ok || !inScope(new URL(response.url).hostname, root)) return;
@@ -339,15 +353,17 @@ async function scanHost(host, root, result, onProgress, emitPartial) {
   const isScript = /javascript|ecmascript/i.test(contentType) || /\.(?:m?js|cjs|jsx|ts|tsx|vue)$/i.test(new URL(source).pathname);
   const initialFiles = isHtml ? [...extractAssetUrls(text, source, root).map(url => ({ url, depth: 0, parent: source })), ...extractInlineScripts(text, source)] : [];
   if (isScript) initialFiles.unshift({ url: source, text, depth: 0, parent: "Host root response" });
-  if (initialFiles.length) await crawlSourceFiles(initialFiles, root, result, onProgress, emitPartial);
+  if (initialFiles.length) await crawlSourceFiles(initialFiles, root, result, onProgress, emitPartial, request);
 }
 
 export async function scanDomain(rawRoot, options = {}, onProgress) {
   const root = normalizeRoot(rawRoot);
   const limits = options.automatic ? { maxHosts: 20, maxSourceFiles: 12, maxSourceMaps: 2, maxImportDepth: 2, maxHostText: 6_000_000 } : { maxHosts: MAX_HOSTS, maxSourceFiles: MAX_SOURCE_FILES, maxSourceMaps: MAX_SOURCE_MAPS, maxImportDepth: MAX_IMPORT_DEPTH, maxHostText: MAX_HOST_TEXT };
   const started = new Date().toISOString();
+  const request = createRequestLimiter();
   onProgress?.({ phase: "discovery", root });
-  const discovery = await getCertificateHosts(root, limits.maxHosts);
+  const discovery = await getCertificateHosts(root, limits.maxHosts, request);
+  const seed = options.pageSnapshot?.root === root ? options.pageSnapshot : null;
   const result = { root, started, limits, hosts: new Set(discovery.hosts), liveHosts: new Set(), allHosts: new Set(discovery.hosts), endpoints: new Map(), indicators: new Map(), swagger: new Set(), sourceFiles: new Map(), sourceFilesScanned: 0, sourceMapsScanned: 0, sourceScanLimited: false, sourceInventoryLimited: false, hostScanLimited: discovery.limited, failedHosts: [], sourceErrors: discovery.errors };
   let lastPartialAt = 0;
   const emitPartial = (force = false) => {
@@ -358,20 +374,38 @@ export async function scanDomain(rawRoot, options = {}, onProgress) {
   };
   emitPartial(true);
   onProgress?.({ phase: "hosts", hostsFound: result.hosts.size, liveHosts: 0, endpoints: 0 });
-  const pendingHosts = [...result.hosts], queuedHosts = new Set(pendingHosts);
-  while (pendingHosts.length) {
-    const batch = pendingHosts.splice(0, CONCURRENCY);
-    await pool(batch, CONCURRENCY, async host => {
-      await scanHost(host, root, result, onProgress, emitPartial);
-      onProgress?.({ phase: "hosts", hostsFound: result.hosts.size, liveHosts: result.liveHosts.size, endpoints: result.endpoints.size, sourceFilesScanned: result.sourceFilesScanned, sourceMapsScanned: result.sourceMapsScanned });
-    });
-    let discoveredHostAdded = false;
-    for (const host of result.allHosts) {
-      if (queuedHosts.has(host)) continue;
-      if (queuedHosts.size >= limits.maxHosts) { result.hostScanLimited = true; continue; }
-      queuedHosts.add(host); result.hosts.add(host); pendingHosts.push(host); discoveredHostAdded = true;
+  const scanPageSeed = async () => {
+  if (seed?.url && inScope(new URL(seed.url).hostname, root)) {
+    const pageText = String(seed.html || "").slice(0, MAX_TEXT);
+    if (pageText) {
+      try {
+        const source = new URL(seed.url).href;
+        result.liveHosts.add(new URL(source).hostname);
+        extractEndpoints(pageText, source, root, result.endpoints, result.swagger, result.indicators);
+        extractIndicators(pageText, source, root, result.indicators, result.allHosts);
+        const initialFiles = [...extractAssetUrls(pageText, source, root).map(url => ({ url, depth: 0, parent: source })), ...extractInlineScripts(pageText, source)];
+        if (initialFiles.length) await crawlSourceFiles(initialFiles, root, result, progress => onProgress?.(progress), emitPartial, request);
+        emitPartial(true);
+      } catch {}
     }
-    if (discoveredHostAdded) emitPartial();
   }
+  };
+  const pendingHosts = [...result.hosts], queuedHosts = new Set(pendingHosts);
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < pendingHosts.length) {
+      const host = pendingHosts[cursor++];
+      await scanHost(host, root, result, onProgress, emitPartial, request);
+      onProgress?.({ phase: "hosts", hostsFound: result.hosts.size, liveHosts: result.liveHosts.size, endpoints: result.endpoints.size, sourceFilesScanned: result.sourceFilesScanned, sourceMapsScanned: result.sourceMapsScanned });
+      let discoveredHostAdded = false;
+      for (const found of result.allHosts) {
+        if (queuedHosts.has(found)) continue;
+        if (queuedHosts.size >= limits.maxHosts) { result.hostScanLimited = true; continue; }
+        queuedHosts.add(found); result.hosts.add(found); pendingHosts.push(found); discoveredHostAdded = true;
+      }
+      if (discoveredHostAdded) emitPartial();
+    }
+  };
+  await Promise.all([scanPageSeed(), ...Array.from({ length: Math.min(CONCURRENCY, pendingHosts.length) }, worker)]);
   return scanSnapshot(result, false);
 }

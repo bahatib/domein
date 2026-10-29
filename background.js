@@ -8,6 +8,18 @@ const activeAutoScanData = new Map();
 const autoScanQueue = [];
 const MAX_PARALLEL_AUTO_SCANS = 2;
 let runningAutoScans = 0;
+const pageSnapshots = new Map();
+
+async function capturePageSnapshot(tabId, root) {
+  try {
+    const [{ result } = {}] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => ({ url: location.href, html: document.documentElement?.outerHTML?.slice(0, 1_000_000) || "" })
+    });
+    if (result?.html && normalizeRoot(result.url) === root) pageSnapshots.set(root, result);
+  } catch {}
+  return pageSnapshots.get(root) || null;
+}
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.get({ scans: [] }, ({ scans }) => {
@@ -45,14 +57,14 @@ async function autoScanTab(tabUrl, tabId) {
   const task = new Promise(resolve => { resolveTask = resolve; });
   activeAutoScans.set(root, task);
   autoScanTabs.set(root, new Set(tabId == null ? [] : [tabId]));
-  autoScanQueue.push({ root, resolveTask });
+  autoScanQueue.push({ root, resolveTask, tabId });
   drainAutoScanQueue();
   return task;
 }
 
 function drainAutoScanQueue() {
   while (runningAutoScans < MAX_PARALLEL_AUTO_SCANS && autoScanQueue.length) {
-    const { root, resolveTask } = autoScanQueue.shift();
+    const { root, resolveTask, tabId } = autoScanQueue.shift();
     const tabIds = autoScanTabs.get(root) || new Set();
     runningAutoScans++;
     void (async () => {
@@ -66,7 +78,8 @@ function drainAutoScanQueue() {
           for (const tabId of tabIds) void setBadgeFromScan(tabId, data).catch(() => {});
           void chrome.runtime.sendMessage({ type: "domein-scan-progress", data }).catch(() => {});
         };
-        const data = await scanDomain(root, { automatic: true }, progress => {
+        const pageSnapshot = tabId == null ? pageSnapshots.get(root) || null : await capturePageSnapshot(tabId, root);
+        const data = await scanDomain(root, { automatic: true, pageSnapshot }, progress => {
           if (progress.phase !== "partial") return;
           pendingSnapshot = progress.data;
           if (Date.now() - lastBroadcast >= 180) broadcast();
@@ -91,6 +104,20 @@ function drainAutoScanQueue() {
     })();
   }
 }
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type !== "domein-capture-page") return;
+  const tabId = sender.tab?.id;
+  if (tabId == null || !message.snapshot?.url) return;
+  try {
+    const root = normalizeRoot(message.snapshot.url);
+    if (typeof message.snapshot.html === "string" && message.snapshot.html.length <= 1_000_000) {
+      pageSnapshots.set(root, { url: message.snapshot.url, html: message.snapshot.html });
+      sendResponse({ ok: true });
+    }
+  } catch {}
+  return true;
+});
 
 async function updateBadge(tabId, tabUrl) {
   try {

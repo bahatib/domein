@@ -3,7 +3,7 @@
   "name": "Domein Research",
   "version": "0.1.0",
   "description": "Scoped subdomain, endpoint, and exposure research for authorized assessments.",
-  "permissions": ["storage", "downloads", "activeTab", "sidePanel", "tabs", "scripting"],
+  "permissions": ["storage", "unlimitedStorage", "downloads", "activeTab", "sidePanel", "tabs", "scripting"],
   "host_permissions": ["<all_urls>"],
   "content_scripts": [{
     "matches": ["http://*/*", "https://*/*"],

@@ -13,7 +13,7 @@ The background service worker automatically scans HTTP(S) sites as their pages f
 
 The toolbar badge shows the saved count for the active site’s root domain after a scan (subdomains + endpoint references + indicator matches). It clears on sites with no matching saved scan and updates when you switch tabs. The side panel follows the active tab and displays its saved scan when available; tab addresses are used only to match sites to local scan results.
 
-No local-folder analysis is included. Reports can be exported as JSON, CSV, or plain text. Data remains in extension local storage until browser data is cleared.
+No local-folder analysis is included. Parsed scan reports remain in extension local storage, and every HTTP response fetched by Domein during discovery or source inspection is also archived automatically in an extension-local IndexedDB database (`domein-response-archive`, object store `responses`). Each record includes the request/final URL, status, headers, timestamp, scan root and ID, and the complete response body as a Blob. This happens in the background without a download prompt or native helper. Open the **Archive** tab to search and inspect recent responses, export a portable JSON archive, or import that archive into another Chrome profile. The archive stays in this Chrome profile and is removed if the extension's site data is cleared; it is not written as a standalone file. Reports can still be exported as JSON, CSV, or plain text.
 
 ## Scope and limits
 

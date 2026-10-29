@@ -146,6 +146,18 @@ main { min-height: 0; flex: 1; display: flex; flex-direction: column; padding: 1
 .notice { margin-bottom: 9px; padding: 9px; border: 1px solid #f1d8b5; border-radius: 7px; background: #fff9ef; color: #80541f; font-size: 11px; line-height: 1.45; }
 .run-meta { grid-column: 1 / -1; color: #718195; font-size: 10px; }
 .run-meta b { color: var(--navy); font: 10px var(--mono); }
+.archive-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; color: var(--muted); font-size: 10px; }
+.archive-export { min-height: 30px; padding: 0 10px; border: 1px solid #ccebdd; border-radius: 6px; background: var(--green-soft); color: #087c56; font-size: 10px; font-weight: 650; cursor: pointer; }
+.archive-record { width: 100%; min-height: 56px; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px; border: 0; border-bottom: 1px solid #edf0f3; background: white; text-align: left; cursor: pointer; }
+.archive-record:hover, .archive-record[aria-expanded="true"] { background: #f2faf6; }
+.archive-record-main { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.archive-record-main strong { overflow: hidden; color: #20354d; font: 11px var(--mono); text-overflow: ellipsis; white-space: nowrap; }
+.archive-record-main small { color: #738397; font-size: 10px; }
+.archive-record .badge { flex: none; }
+.archive-detail { margin: 0 0 8px; padding: 10px; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 7px 7px; background: #f9fbfc; }
+.archive-detail pre { max-height: 320px; overflow: auto; margin: 8px 0 0; padding: 9px; border-radius: 6px; background: #172b45; color: #e6f3f0; font: 10px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.archive-meta { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 5px 8px; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+.archive-meta b { color: var(--navy); font-weight: 650; }
 footer { flex: none; min-height: 38px; display: flex; align-items: center; justify-content: space-between; padding: 0 17px; border-top: 1px solid #e6ebef; background: #ffffffed; color: #718195; font-size: 10px; backdrop-filter: blur(12px); }
 footer button { display: inline-flex; align-items: center; gap: 5px; padding: 5px 0; border: 0; background: transparent; color: #0f8a60; font-size: 10.5px; font-weight: 600; cursor: pointer; }
 .toast { position: fixed; right: 12px; bottom: 12px; z-index: 10; max-width: 360px; padding: 10px 13px; border: 1px solid #a9e1c7; border-radius: 8px; background: linear-gradient(105deg, #17334e, #204462); color: white; font-size: 11px; box-shadow: 0 8px 24px #172b4522; opacity: 0; pointer-events: none; transform: translateY(5px); transition: opacity .18s ease, transform .18s ease; }

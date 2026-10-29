@@ -1,6 +1,7 @@
 import { scanDomain, normalizeRoot, inScope } from "./scanner.js";
+import { getArchivedResponseCount, listArchivedResponses, getArchivedResponse, getAllArchivedResponses, importArchivedResponses } from "./response-store.js";
 const $ = (id) => document.getElementById(id);
-const state = { tab: "overview", data: null, history: [], busy: false };
+const state = { tab: "overview", data: null, history: [], busy: false, archiveRows: [], archiveOpenId: null, archiveCount: 0 };
 const MAX_STORED_SCANS = 10;
 const icon = (name, cls = "ui-icon") => `<svg class="${cls}" aria-hidden="true"><use href="icons/ui/sprite.svg#${name}"></use></svg>`;
 let partialRenderPending = false;
@@ -92,6 +93,7 @@ async function copyToClipboard(value) {
   toast("Finding copied.");
 }
 function render() {
+  if (state.tab === "archive") { void renderArchive(); return; }
   const d = state.data; if (!d) { $("panel").innerHTML = `<div class="welcome"><div class="welcome-glyph">${icon("search")}</div><h2>No scan results yet</h2><p>Enter a domain above to start.</p></div>`; return; }
   const q = $("filter").value.trim().toLowerCase();
   const match = value => !q || value.toLowerCase().includes(q);
@@ -112,6 +114,72 @@ function render() {
     }).join(""))}`;
   }
   else $("panel").innerHTML = `${warning}<div class="overview-grid">${section("Subdomains", subs.length, subs.slice(0, 8).map(x => row(x, d.liveHosts.includes(x) ? "Responsive" : "Certificate transparency", d.liveHosts.includes(x) ? "LIVE" : "CT", `https://${x}/`)).join(""))}${section("Endpoint references", eps.length, eps.slice(0, 8).map(x => row(x.url, x.source, x.kind, x.url)).join(""))}<section class="grouped-findings"><div class="result-heading"><h3>Sensitive data by type</h3><span>${inds.length}</span></div>${findingsByType(inds, 4, 3) || `<div class="empty">No matches yet.</div>`}</section>${section("Swagger / OpenAPI", d.swagger.length, d.swagger.slice(0, 6).map(x => row(x, "Specification signal", "SPEC")).join(""))}</div><div class="run-meta">${d.inProgress ? "Scan in progress" : `Last scan: ${escapeHtml(new Date(d.completed).toLocaleString())}`} · Scope: <b>${escapeHtml(d.root)}</b> · ${d.failedHosts.length} hosts did not respond · ${d.sourceFilesScanned || 0} source files · ${d.sourceMapsScanned || 0} source maps${d.sourceScanLimited || d.hostScanLimited ? " · scan cap reached" : ""}${d.sourceInventoryLimited ? " · source inventory shortened" : ""}</div>`;
+}
+async function renderArchive() {
+  const panel = $("panel"), query = $("filter").value.trim();
+  panel.innerHTML = `<div class="empty">Loading archived responses…</div>`;
+  try {
+    const [total, rows] = await Promise.all([getArchivedResponseCount(), listArchivedResponses(query, 100)]);
+    if (state.tab !== "archive" || query !== $("filter").value.trim()) return;
+    state.archiveCount = total; $("countArchive").textContent = total;
+    const list = rows.map(record => {
+      const expanded = state.archiveOpenId === record.id;
+      return `<button class="archive-record" type="button" data-archive-id="${record.id}" aria-expanded="${expanded}"><span class="archive-record-main"><strong>${escapeHtml(record.url)}</strong><small>${escapeHtml(record.root)} · ${escapeHtml(new Date(record.timestamp).toLocaleString())} · ${formatBytes(record.bodyBytes || 0)}</small></span><span class="badge">${escapeHtml(record.status)}</span></button>${expanded && state.archiveDetail ? archiveDetailMarkup(state.archiveDetail) : ""}`;
+    }).join("");
+    panel.innerHTML = `<div class="archive-toolbar"><span>${total} responses stored · newest 100 shown</span><span><button class="archive-export" type="button" data-archive-action="import">Import JSON</button> <button class="archive-export" type="button" data-archive-action="export">Export archive</button></span></div><input id="archive-file" type="file" accept="application/json,.json" hidden><div>${list || `<div class="empty">${total ? "No archived responses match this filter." : "No responses archived yet. Run a scan to start building the local archive."}</div>`}</div>`;
+  } catch (error) { panel.innerHTML = `<div class="notice">Could not read the response archive: ${escapeHtml(error.message)}</div>`; }
+}
+function formatBytes(value) {
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+function archiveDetailMarkup(record) {
+  const textual = /text|json|javascript|xml|yaml|graphql|x-www-form-urlencoded/i.test(record.contentType || "");
+  // The detail is populated separately after retrieval to avoid HTML-injecting a saved response.
+  const preview = state.archiveBodyPreview;
+  return `<div class="archive-detail" data-archive-detail="${record.id}"><div class="archive-meta"><b>Requested</b><span>${escapeHtml(record.requestedUrl)}</span><b>Final URL</b><span>${escapeHtml(record.url)}</span><b>Content type</b><span>${escapeHtml(record.contentType || "unknown")}</span><b>Size</b><span>${formatBytes(record.bodyBytes || 0)}</span></div><pre>${textual ? (preview == null ? "Loading response body…" : escapeHtml(preview)) : "Binary response body. Use Export archive to preserve and move the full body."}</pre><button class="archive-export" type="button" data-archive-action="download-record" data-record-id="${record.id}">Export this response</button></div>`;
+}
+async function showArchiveRecord(id) {
+  state.archiveOpenId = id; state.archiveDetail = id == null ? null : await getArchivedResponse(id); state.archiveBodyPreview = null; await renderArchive();
+  if (!state.archiveDetail) return;
+  const target = document.querySelector(`[data-archive-detail="${id}"] pre`);
+  if (!target) return;
+  if (/text|json|javascript|xml|yaml|graphql|x-www-form-urlencoded/i.test(state.archiveDetail.contentType || "")) {
+    const bodyText = await state.archiveDetail.body.text();
+    state.archiveBodyPreview = bodyText.length > 500_000 ? `${bodyText.slice(0, 500_000)}\n\n[Preview truncated. Export the archive to retrieve the complete response.]` : bodyText;
+    target.textContent = state.archiveBodyPreview;
+  }
+}
+function saveJsonFile(value, filename) {
+  const blob = new Blob([JSON.stringify(value)], { type: "application/json" });
+  const url = URL.createObjectURL(blob), anchor = document.createElement("a");
+  anchor.href = url; anchor.download = filename; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 3000);
+}
+async function exportResponseArchive(recordId = null) {
+  try {
+    const records = recordId == null ? await getAllArchivedResponses() : [await getArchivedResponse(recordId)].filter(Boolean);
+    if (!records.length) { toast("There are no archived responses to export."); return; }
+    const output = [];
+    for (const record of records) {
+      const { body, ...metadata } = record;
+      const bytes = new Uint8Array(await body.arrayBuffer());
+      let binary = "";
+      const chunkSize = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunkSize) binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+      output.push({ ...metadata, bodyType: body.type, bodyBase64: btoa(binary) });
+    }
+    saveJsonFile({ format: "domein-response-archive", version: 1, exportedAt: new Date().toISOString(), records: output }, `domein-response-archive-${new Date().toISOString().slice(0, 10)}.json`);
+    toast(`Exported ${output.length} archived response${output.length === 1 ? "" : "s"}.`);
+  } catch (error) { toast(`Archive export failed: ${error.message}`); }
+}
+async function importResponseArchive(file) {
+  try {
+    const bundle = JSON.parse(await file.text());
+    if (bundle?.format !== "domein-response-archive" || bundle.version !== 1) throw new Error("This file is not a supported Domein response archive.");
+    await importArchivedResponses(bundle.records);
+    toast(`Imported ${bundle.records.length} response records.`); await renderArchive();
+  } catch (error) { toast(`Archive import failed: ${error.message}`); }
 }
 function exportData(format) {
   if (!state.data) { toast("Run a scan before exporting."); return; }
@@ -159,6 +227,7 @@ async function syncActiveSite(tabId) {
 }
 async function init() {
   const saved = await chrome.storage.local.get({ latestScan: null, scans: [] }); state.data = saved.latestScan; state.history = saved.scans;
+  try { state.archiveCount = await getArchivedResponseCount(); $("countArchive").textContent = state.archiveCount; } catch {}
   let activeHost = "";
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -184,6 +253,13 @@ async function init() {
     if (area === "local" && (changes.latestScan || changes.scans) && !state.busy) void syncActiveSite();
   });
   chrome.runtime.onMessage.addListener(message => {
+    if (message?.type === "domein-archive-updated") {
+      void getArchivedResponseCount().then(count => {
+        state.archiveCount = count; $("countArchive").textContent = count;
+        if (state.tab === "archive") render();
+      }).catch(() => {});
+      return;
+    }
     if (message?.type !== "domein-scan-progress" || !message.data?.root) return;
     try { if (normalizeRoot($("domain").value) === message.data.root) showPartialScan(message.data); } catch {}
   });
@@ -197,8 +273,17 @@ async function init() {
       chrome.tabs.create({ url: target.href, active: true });
     } catch (error) { toast(error.message || "Could not open this result."); }
   });
-  $("tabs").addEventListener("click", e => { const button = e.target.closest("[data-tab]"); if (!button) return; state.tab = button.dataset.tab; document.querySelectorAll(".tab").forEach(t => { const selected = t === button; t.classList.toggle("selected", selected); t.setAttribute("aria-pressed", String(selected)); }); render(); });
+  $("tabs").addEventListener("click", e => { const button = e.target.closest("[data-tab]"); if (!button) return; state.tab = button.dataset.tab; state.archiveOpenId = null; state.archiveDetail = null; document.querySelectorAll(".tab").forEach(t => { const selected = t === button; t.classList.toggle("selected", selected); t.setAttribute("aria-pressed", String(selected)); }); render(); });
   $("filter").addEventListener("input", render); $("export").addEventListener("click", () => exportData($("format").value)); $("exportTop").addEventListener("click", () => exportData("json"));
+  $("panel").addEventListener("click", e => {
+    const recordButton = e.target.closest("[data-archive-id]");
+    if (recordButton) { const id = Number(recordButton.dataset.archiveId); void showArchiveRecord(state.archiveOpenId === id ? null : id); return; }
+    const action = e.target.closest("[data-archive-action]")?.dataset.archiveAction;
+    if (action === "export") void exportResponseArchive();
+    else if (action === "download-record") void exportResponseArchive(e.target.closest("[data-record-id]").dataset.recordId);
+    else if (action === "import") $("archive-file")?.click();
+  });
+  $("panel").addEventListener("change", e => { if (e.target.id === "archive-file" && e.target.files?.[0]) void importResponseArchive(e.target.files[0]); });
   $("domain").addEventListener("keydown", e => { if (e.key === "Enter") startScan(); });
 }
 init().catch(e => toast(e.message));

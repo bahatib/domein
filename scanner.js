@@ -1,3 +1,5 @@
+import { archiveResponse } from "./response-store.js";
+
 const MAX_TEXT = 1_000_000, MAX_MAP_TEXT = 2_000_000, MAX_HOST_TEXT = 12_000_000;
 const MAX_HOSTS = 120, CONCURRENCY = 10, SOURCE_CONCURRENCY = 6, MAX_SOURCE_FILES = 40, MAX_SOURCE_MAPS = 5, MAX_IMPORT_DEPTH = 3;
 const MAX_RECORDED_SOURCE_FILES = 1500;
@@ -21,14 +23,18 @@ function normalizeHost(value, root) {
   if (!host || host.includes("*") || !inScope(host, root)) return null;
   return host;
 }
-function createRequestLimiter(limit = REQUEST_CONCURRENCY) {
+function createRequestLimiter(root, scanId, limit = REQUEST_CONCURRENCY) {
   let active = 0;
   const waiters = [];
   return async (url, ms = 5000) => {
   if (active >= limit) await new Promise(resolve => waiters.push(resolve));
   active++;
   const controller = new AbortController(), timer = setTimeout(() => controller.abort(), ms);
-  try { return await fetch(url, { signal: controller.signal, redirect: "follow", credentials: "omit", cache: "no-store" }); }
+  try {
+    const response = await fetch(url, { signal: controller.signal, redirect: "follow", credentials: "omit", cache: "no-store" });
+    await archiveResponse(response, { root, scanId, requestedUrl: String(url) });
+    return response;
+  }
   finally {
     clearTimeout(timer);
     active--;
@@ -360,7 +366,7 @@ export async function scanDomain(rawRoot, options = {}, onProgress) {
   const root = normalizeRoot(rawRoot);
   const limits = options.automatic ? { maxHosts: 20, maxSourceFiles: 12, maxSourceMaps: 2, maxImportDepth: 2, maxHostText: 6_000_000 } : { maxHosts: MAX_HOSTS, maxSourceFiles: MAX_SOURCE_FILES, maxSourceMaps: MAX_SOURCE_MAPS, maxImportDepth: MAX_IMPORT_DEPTH, maxHostText: MAX_HOST_TEXT };
   const started = new Date().toISOString();
-  const request = createRequestLimiter();
+  const request = createRequestLimiter(root, started);
   onProgress?.({ phase: "discovery", root });
   const discovery = await getCertificateHosts(root, limits.maxHosts, request);
   const seed = options.pageSnapshot?.root === root ? options.pageSnapshot : null;

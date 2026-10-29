@@ -142,9 +142,9 @@ main { min-height: 0; flex: 1; display: flex; flex-direction: column; padding: 1
 .result-main small { overflow: hidden; color: #6e7f90; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .result-actions { display: flex; align-items: center; gap: 6px; flex: none; }
 .badge { padding: 4px 6px; border-radius: 5px; background: #f0f4f7; color: #52677b; font: 9.5px var(--mono); }
-.open-result { width: 27px; height: 27px; display: grid; place-items: center; padding: 0; border: 1px solid #d9e8e1; border-radius: 6px; background: white; color: #18815d; cursor: pointer; transition: background .16s, border-color .16s, transform .16s; }
-.open-result:hover { transform: translateY(-1px); border-color: #8fd8b9; background: var(--green-soft); }
-.open-result .ui-icon { width: 15px; height: 15px; }
+.open-result, .copy-result { width: 27px; height: 27px; display: grid; place-items: center; padding: 0; border: 1px solid #d9e8e1; border-radius: 6px; background: white; color: #18815d; cursor: pointer; transition: background .16s, border-color .16s, transform .16s; }
+.open-result:hover, .copy-result:hover { transform: translateY(-1px); border-color: #8fd8b9; background: var(--green-soft); }
+.open-result .ui-icon, .copy-result .ui-icon { width: 15px; height: 15px; }
 .empty { padding: 17px 4px; color: #758598; font-size: 12px; }
 .findings-groups { display: grid; gap: 13px; }
 .findings-groups .result-section + .result-section { margin-top: 0; }

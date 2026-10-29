@@ -1,10 +1,21 @@
+import { scanDomain, normalizeRoot } from "./scanner.js";
+
+const AUTO_SCAN_COOLDOWN = 30 * 60 * 1000;
+const MAX_STORED_SCANS = 10;
+const activeAutoScans = new Map();
+const autoScanQueue = [];
+const MAX_PARALLEL_AUTO_SCANS = 2;
+let runningAutoScans = 0;
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.get({ scans: [] }, ({ scans }) => {
     if (!Array.isArray(scans)) chrome.storage.local.set({ scans: [] });
   });
   chrome.action.setBadgeBackgroundColor({ color: "#159f70" });
   chrome.sidePanel?.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
-  chrome.tabs.query({ active: true, lastFocusedWindow: true }, ([tab]) => { if (tab?.id) updateBadge(tab.id, tab.url); });
+  chrome.tabs.query({ active: true, lastFocusedWindow: true }, ([tab]) => {
+    if (tab?.id) { updateBadge(tab.id, tab.url); void autoScanTab(tab.url); }
+  });
 });
 
 // Fallback for Chrome versions that do not support openPanelOnActionClick.
@@ -13,6 +24,64 @@ chrome.action.onClicked.addListener((tab) => {
 });
 
 function matchesRoot(host, root) { return host === root || host.endsWith(`.${root}`); }
+
+async function autoScanTab(tabUrl) {
+  let root;
+  try { root = normalizeRoot(tabUrl); } catch { return; }
+  if (activeAutoScans.has(root)) return activeAutoScans.get(root);
+  try {
+    const { scans = [], latestScan = null } = await chrome.storage.local.get({ scans: [], latestScan: null });
+    const previous = [...scans, ...(latestScan ? [latestScan] : [])]
+      .filter(scan => scan?.root === root)
+      .sort((a, b) => Date.parse(b.completed || b.started) - Date.parse(a.completed || a.started))[0];
+    const lastComplete = Date.parse(previous?.completed || previous?.started || "");
+    if (Number.isFinite(lastComplete) && Date.now() - lastComplete < AUTO_SCAN_COOLDOWN) return;
+  } catch { return; }
+
+  if (activeAutoScans.has(root)) return activeAutoScans.get(root);
+  let resolveTask;
+  const task = new Promise(resolve => { resolveTask = resolve; });
+  activeAutoScans.set(root, task);
+  autoScanQueue.push({ root, resolveTask });
+  drainAutoScanQueue();
+  return task;
+}
+
+function drainAutoScanQueue() {
+  while (runningAutoScans < MAX_PARALLEL_AUTO_SCANS && autoScanQueue.length) {
+    const { root, resolveTask } = autoScanQueue.shift();
+    runningAutoScans++;
+    void (async () => {
+      try {
+        let pendingSnapshot = null, lastBroadcast = 0, broadcastTimer = null;
+        const broadcast = () => {
+          broadcastTimer = null;
+          if (!pendingSnapshot) return;
+          const data = pendingSnapshot; pendingSnapshot = null; lastBroadcast = Date.now();
+          void chrome.runtime.sendMessage({ type: "domein-scan-progress", data }).catch(() => {});
+        };
+        const data = await scanDomain(root, { automatic: true }, progress => {
+          if (progress.phase !== "partial") return;
+          pendingSnapshot = progress.data;
+          if (Date.now() - lastBroadcast >= 180) broadcast();
+          else if (!broadcastTimer) broadcastTimer = setTimeout(broadcast, 180 - (Date.now() - lastBroadcast));
+        });
+        if (broadcastTimer) clearTimeout(broadcastTimer);
+        if (pendingSnapshot) broadcast();
+        const { scans = [] } = await chrome.storage.local.get({ scans: [] });
+        const history = [data, ...scans.filter(scan => scan.root !== root || scan.started !== data.started)].slice(0, MAX_STORED_SCANS);
+        await chrome.storage.local.set({ latestScan: data, scans: history });
+      } catch (error) {
+        console.warn("Domein automatic scan failed:", root, error?.message || error);
+      } finally {
+        activeAutoScans.delete(root);
+        runningAutoScans--;
+        resolveTask();
+        drainAutoScanQueue();
+      }
+    })();
+  }
+}
 
 async function updateBadge(tabId, tabUrl) {
   try {
@@ -30,14 +99,19 @@ async function updateBadge(tabId, tabUrl) {
   }
 }
 
-chrome.tabs.onActivated.addListener(({ tabId }) => updateBadge(tabId));
+chrome.tabs.onActivated.addListener(({ tabId }) => {
+  chrome.tabs.get(tabId).then(tab => { void updateBadge(tabId, tab.url); void autoScanTab(tab.url); }).catch(() => {});
+});
 chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
   if (change.status === "complete" || change.url) updateBadge(tabId, tab.url);
+  if (change.status === "complete") void autoScanTab(tab.url);
 });
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local" || (!changes.scans && !changes.latestScan)) return;
   chrome.tabs.query({ active: true, lastFocusedWindow: true }, ([tab]) => { if (tab?.id) updateBadge(tab.id, tab.url); });
 });
 chrome.runtime.onStartup.addListener(() => {
-  chrome.tabs.query({ active: true, lastFocusedWindow: true }, ([tab]) => { if (tab?.id) updateBadge(tab.id, tab.url); });
+  chrome.tabs.query({ active: true, lastFocusedWindow: true }, ([tab]) => {
+    if (tab?.id) { updateBadge(tab.id, tab.url); void autoScanTab(tab.url); }
+  });
 });

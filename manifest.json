@@ -4,8 +4,7 @@
   "version": "0.1.0",
   "description": "Scoped subdomain, endpoint, and exposure research for authorized assessments.",
   "permissions": ["storage", "downloads", "activeTab", "sidePanel", "tabs"],
-  "host_permissions": ["https://crt.sh/*", "https://api.ctlogs.dev/*"],
-  "optional_host_permissions": ["https://*/*", "http://*/*"],
+  "host_permissions": ["<all_urls>"],
   "action": {
     "default_title": "Open Domein Research",
     "default_icon": { "16": "icons/icon-16.png", "32": "icons/icon-32.png" }

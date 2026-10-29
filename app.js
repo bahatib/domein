@@ -1,7 +1,7 @@
 import { scanDomain, normalizeRoot, inScope } from "./scanner.js";
 import { getArchivedResponseCount, listArchivedResponses, getArchivedResponse, getAllArchivedResponses, importArchivedResponses } from "./response-store.js";
 const $ = (id) => document.getElementById(id);
-const state = { tab: "overview", data: null, history: [], busy: false, archiveRows: [], archiveOpenId: null, archiveCount: 0 };
+const state = { tab: "overview", data: null, history: [], busy: false, autoScanning: false, archiveRows: [], archiveOpenId: null, archiveCount: 0 };
 const MAX_STORED_SCANS = 10;
 const icon = (name, cls = "ui-icon") => `<svg class="${cls}" aria-hidden="true"><use href="icons/ui/sprite.svg#${name}"></use></svg>`;
 let partialRenderPending = false;
@@ -28,6 +28,7 @@ async function startScan() {
   let root; try { root = normalizeRoot($("domain").value); } catch (e) { toast(e.message); return; }
   state.busy = true; $("start").disabled = true; $("start").innerHTML = `<span>Discovering…</span>${icon("loader-circle", "ui-icon spin")}`;
   setStatus("Discovering", "Discovering in-scope hosts and routes");
+  render();
   try {
     state.data = await scanDomain(root, {}, progress => {
       if (progress.phase === "partial" && progress.data?.root === root) {
@@ -58,6 +59,16 @@ function updateStats() {
   $("statSubs").textContent = d.subdomains.length; $("statEndpoints").textContent = d.endpoints.length; $("statIndicators").textContent = d.indicators.length;
   $("countOverview").textContent = d.subdomains.length + d.endpoints.length + d.indicators.length;
   $("countSubdomains").textContent = d.subdomains.length; $("countEndpoints").textContent = d.endpoints.length; $("countFindings").textContent = d.indicators.length; $("countSources").textContent = d.sourceFilesScanned || 0;
+}
+function hasDisplayableScanResults(data) {
+  if (!data) return false;
+  const seeded = new Set([data.root, `www.${data.root}`]);
+  return (data.subdomains || []).some(host => !seeded.has(host))
+    || (data.liveHosts || []).length > 0
+    || (data.endpoints || []).length > 0
+    || (data.indicators || []).length > 0
+    || (data.swagger || []).length > 0
+    || (data.sourceFilesScanned || 0) > 0;
 }
 function row(title, meta, badge = "", openUrl = "", copyText = "") {
   const action = openUrl ? `<button class="open-result" type="button" data-open-url="${escapeHtml(openUrl)}" title="Open in new tab" aria-label="Open ${escapeHtml(title)} in new tab">${icon("external-link")}</button>` : "";
@@ -94,7 +105,12 @@ async function copyToClipboard(value) {
 }
 function render() {
   if (state.tab === "archive") { void renderArchive(); return; }
-  const d = state.data; if (!d) { $("panel").innerHTML = `<div class="welcome"><div class="welcome-glyph">${icon("search")}</div><h2>No scan results yet</h2><p>Enter a domain above to start.</p></div>`; return; }
+  const d = state.data, hasResults = hasDisplayableScanResults(d);
+  if (!d || ((state.busy || state.autoScanning) && !hasResults)) {
+    const loading = state.busy || state.autoScanning;
+    $("panel").innerHTML = `<div class="welcome ${loading ? "loading-state" : ""}"><div class="welcome-glyph ${loading ? "loading-spinner" : ""}">${icon(loading ? "loader-circle" : "search", loading ? "ui-icon spin" : "ui-icon")}</div><h2>${loading ? "Scanning this site…" : "No scan results yet"}</h2><p>${loading ? "Discovering hosts and processing responses. Results will appear as they’re found." : "Enter a domain above to start."}</p></div>`;
+    return;
+  }
   const q = $("filter").value.trim().toLowerCase();
   const match = value => !q || value.toLowerCase().includes(q);
   const subs = d.subdomains.filter(x => match(x));
@@ -126,7 +142,11 @@ async function renderArchive() {
       const expanded = state.archiveOpenId === record.id;
       return `<button class="archive-record" type="button" data-archive-id="${record.id}" aria-expanded="${expanded}"><span class="archive-record-main"><strong>${escapeHtml(record.url)}</strong><small>${escapeHtml(record.root)} · ${escapeHtml(new Date(record.timestamp).toLocaleString())} · ${formatBytes(record.bodyBytes || 0)}</small></span><span class="badge">${escapeHtml(record.status)}</span></button>${expanded && state.archiveDetail ? archiveDetailMarkup(state.archiveDetail) : ""}`;
     }).join("");
-    panel.innerHTML = `<div class="archive-toolbar"><span>${total} responses stored · newest 100 shown</span><span><button class="archive-export" type="button" data-archive-action="import">Import JSON</button> <button class="archive-export" type="button" data-archive-action="export">Export archive</button></span></div><input id="archive-file" type="file" accept="application/json,.json" hidden><div>${list || `<div class="empty">${total ? "No archived responses match this filter." : "No responses archived yet. Run a scan to start building the local archive."}</div>`}</div>`;
+    const emptyMessage = state.busy || state.autoScanning
+      ? `<div class="archive-loading"><svg class="ui-icon spin"><use href="icons/ui/sprite.svg#loader-circle"></use></svg><strong>Processing responses…</strong><span>New records will appear here as the scan runs.</span></div>`
+      : `<div class="empty">${total ? "No archived responses match this filter." : "No responses archived yet. Run a scan to start building the local archive."}</div>`;
+    const scanStatus = state.busy || state.autoScanning ? `<span class="archive-progress"><svg class="ui-icon spin"><use href="icons/ui/sprite.svg#loader-circle"></use></svg> Processing</span>` : "";
+    panel.innerHTML = `<div class="archive-toolbar"><span>${total} responses stored · newest 100 shown ${scanStatus}</span><span><button class="archive-export" type="button" data-archive-action="import">Import JSON</button> <button class="archive-export" type="button" data-archive-action="export">Export archive</button></span></div><input id="archive-file" type="file" accept="application/json,.json" hidden><div>${list || emptyMessage}</div>`;
   } catch (error) { panel.innerHTML = `<div class="notice">Could not read the response archive: ${escapeHtml(error.message)}</div>`; }
 }
 function formatBytes(value) {
@@ -210,6 +230,7 @@ async function syncActiveSite(tabId) {
     if (!tab?.url || !/^https?:/.test(tab.url)) return;
     const host = new URL(tab.url).hostname.toLowerCase();
     $("domain").value = host.replace(/^www\./, "");
+    state.autoScanning = false;
     const saved = await chrome.storage.local.get({ scans: [], latestScan: null });
     state.history = saved.scans;
     const candidates = [...saved.scans, ...(saved.latestScan ? [saved.latestScan] : [])]
@@ -223,6 +244,13 @@ async function syncActiveSite(tabId) {
       setStatus("Ready", "No saved scan for this site yet");
     }
     render();
+    chrome.runtime.sendMessage({ type: "domein-get-active-scans" }).then(({ roots = [] } = {}) => {
+      try {
+        if (normalizeRoot($("domain").value) !== normalizeRoot(tab.url)) return;
+        state.autoScanning = roots.includes(normalizeRoot(tab.url));
+        if (!state.data || state.tab === "archive") render();
+      } catch {}
+    }).catch(() => {});
   } catch {}
 }
 async function init() {
@@ -253,6 +281,16 @@ async function init() {
     if (area === "local" && (changes.latestScan || changes.scans) && !state.busy) void syncActiveSite();
   });
   chrome.runtime.onMessage.addListener(message => {
+    if (message?.type === "domein-scan-status" && message.root) {
+      try {
+        if (normalizeRoot($("domain").value) !== message.root) return;
+        state.autoScanning = Boolean(message.inProgress);
+        if (state.autoScanning) setStatus("Inspecting", message.detail || "Processing scan results");
+        else if (!state.busy && message.phase === "complete") setStatus("Complete", message.detail || "Scan complete");
+        if (!state.data || state.tab === "archive") render();
+      } catch {}
+      return;
+    }
     if (message?.type === "domein-archive-updated") {
       void getArchivedResponseCount().then(count => {
         state.archiveCount = count; $("countArchive").textContent = count;
@@ -284,6 +322,9 @@ async function init() {
     else if (action === "import") $("archive-file")?.click();
   });
   $("panel").addEventListener("change", e => { if (e.target.id === "archive-file" && e.target.files?.[0]) void importResponseArchive(e.target.files[0]); });
+  chrome.runtime.sendMessage({ type: "domein-get-active-scans" }).then(({ roots = [] } = {}) => {
+    try { state.autoScanning = roots.includes(normalizeRoot($("domain").value)); if (state.autoScanning && !state.data) render(); } catch {}
+  }).catch(() => {});
   $("domain").addEventListener("keydown", e => { if (e.key === "Enter") startScan(); });
 }
 init().catch(e => toast(e.message));

@@ -69,6 +69,7 @@ function drainAutoScanQueue() {
     runningAutoScans++;
     void (async () => {
       try {
+        void chrome.runtime.sendMessage({ type: "domein-scan-status", root, inProgress: true, phase: "discovering", detail: "Discovering hosts and collecting responses" }).catch(() => {});
         let pendingSnapshot = null, lastBroadcast = 0, broadcastTimer = null;
         const broadcast = () => {
           broadcastTimer = null;
@@ -80,7 +81,10 @@ function drainAutoScanQueue() {
         };
         const pageSnapshot = tabId == null ? pageSnapshots.get(root) || null : await capturePageSnapshot(tabId, root);
         const data = await scanDomain(root, { automatic: true, pageSnapshot }, progress => {
-          if (progress.phase !== "partial") return;
+          if (progress.phase !== "partial") {
+            void chrome.runtime.sendMessage({ type: "domein-scan-status", root, inProgress: true, phase: progress.phase, detail: progress.phase === "sources" ? `Processing ${progress.sourceFilesScanned || 0} source files · ${progress.sourceMapsScanned || 0} maps` : `Inspecting ${progress.hostsFound || 0} discovered hosts` }).catch(() => {});
+            return;
+          }
           pendingSnapshot = progress.data;
           if (Date.now() - lastBroadcast >= 180) broadcast();
           else if (!broadcastTimer) broadcastTimer = setTimeout(broadcast, 180 - (Date.now() - lastBroadcast));
@@ -90,8 +94,10 @@ function drainAutoScanQueue() {
         const { scans = [] } = await chrome.storage.local.get({ scans: [] });
         const history = [data, ...scans.filter(scan => scan.root !== root || scan.started !== data.started)].slice(0, MAX_STORED_SCANS);
         await chrome.storage.local.set({ latestScan: data, scans: history });
+        void chrome.runtime.sendMessage({ type: "domein-scan-status", root, inProgress: false, phase: "complete", detail: "Scan complete" }).catch(() => {});
       } catch (error) {
         console.warn("Domein automatic scan failed:", root, error?.message || error);
+        void chrome.runtime.sendMessage({ type: "domein-scan-status", root, inProgress: false, phase: "error", detail: "Scan could not be completed" }).catch(() => {});
       } finally {
         activeAutoScanData.delete(root);
         activeAutoScans.delete(root);
@@ -106,6 +112,10 @@ function drainAutoScanQueue() {
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === "domein-get-active-scans") {
+    sendResponse({ roots: [...activeAutoScans.keys()] });
+    return false;
+  }
   if (message?.type !== "domein-capture-page") return;
   const tabId = sender.tab?.id;
   if (tabId == null || !message.snapshot?.url) return;

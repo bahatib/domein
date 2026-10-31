@@ -2,51 +2,105 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <title>Domein Research</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="sidepanel.css">
 </head>
 <body>
+
   <header class="header">
     <div class="header-top">
       <img class="brand-icon" src="icons/logo.png" alt="">
       <div class="brand"><strong>Domein</strong><small>Surface research</small></div>
       <div class="status-stack">
-        <div class="header-state" data-state="ready"><i></i><span id="statStatus">Ready</span></div>
+        <div class="header-state state" data-state="ready">
+          <i aria-hidden="true"></i><span id="statStatus">Ready</span>
+        </div>
         <div id="statusDetail" class="status-detail">Waiting for a site</div>
       </div>
     </div>
+
     <div class="header-controls">
       <div class="target-input">
         <svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#search"></use></svg>
-        <input id="domain" aria-label="Search domain" placeholder="example.com" autocomplete="off" spellcheck="false">
-        <button id="activeTab" type="button" title="Use current tab domain" aria-label="Use current tab domain"><svg class="ui-icon"><use href="icons/ui/sprite.svg#scan-search"></use></svg></button>
+        <input id="domain" type="text" inputmode="url" aria-label="Root domain" placeholder="example.com" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <button id="activeTab" class="btn-icon" type="button" title="Use the current tab’s domain" aria-label="Use the current tab’s domain">
+          <svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#scan-search"></use></svg>
+        </button>
       </div>
-      <button id="start" class="scan-button" type="button"><span>Start scan</span><svg class="ui-icon"><use href="icons/ui/sprite.svg#arrow-right"></use></svg></button>
+      <button id="start" class="btn btn-primary scan-button" type="button">
+        <span>Start scan</span>
+        <svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#arrow-right"></use></svg>
+      </button>
     </div>
   </header>
 
   <main>
     <section class="metrics" aria-label="Scan totals">
-      <div class="metric"><span><svg class="ui-icon"><use href="icons/ui/sprite.svg#globe"></use></svg>HOSTS</span><strong id="statSubs">—</strong></div>
-      <div class="metric"><span><svg class="ui-icon"><use href="icons/ui/sprite.svg#route"></use></svg>ROUTES</span><strong id="statEndpoints">—</strong></div>
-      <div class="metric"><span><svg class="ui-icon"><use href="icons/ui/sprite.svg#shield-alert"></use></svg>FINDINGS</span><strong id="statIndicators">—</strong></div>
+      <div class="metric">
+        <span><svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#globe"></use></svg>Hosts</span>
+        <strong id="statSubs">—</strong>
+      </div>
+      <div class="metric">
+        <span><svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#route"></use></svg>Routes</span>
+        <strong id="statEndpoints">—</strong>
+      </div>
+      <div class="metric metric-findings">
+        <span><svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#shield-alert"></use></svg>Findings</span>
+        <strong id="statIndicators">—</strong>
+      </div>
     </section>
 
     <section class="results">
       <nav class="tabs" id="tabs" aria-label="Results">
-        <button class="tab selected" data-tab="overview"><svg class="ui-icon"><use href="icons/ui/sprite.svg#server"></use></svg>Overview <em id="countOverview">0</em></button>
-        <button class="tab" data-tab="subdomains"><svg class="ui-icon"><use href="icons/ui/sprite.svg#globe"></use></svg>Hosts <em id="countSubdomains">0</em></button>
-        <button class="tab" data-tab="endpoints"><svg class="ui-icon"><use href="icons/ui/sprite.svg#route"></use></svg>Routes <em id="countEndpoints">0</em></button>
-        <button class="tab" data-tab="findings"><svg class="ui-icon"><use href="icons/ui/sprite.svg#shield-alert"></use></svg>Data <em id="countFindings">0</em></button>
-        <button class="tab" data-tab="sources"><svg class="ui-icon"><use href="icons/ui/sprite.svg#file-search"></use></svg>Sources <em id="countSources">0</em></button>
-        <button class="tab" data-tab="archive"><svg class="ui-icon"><use href="icons/ui/sprite.svg#server"></use></svg>Archive <em id="countArchive">0</em></button>
+        <button class="tab selected" type="button" data-tab="overview"><svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#server"></use></svg>Overview <em id="countOverview">0</em></button>
+        <button class="tab" type="button" data-tab="subdomains"><svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#globe"></use></svg>Hosts <em id="countSubdomains">0</em></button>
+        <button class="tab" type="button" data-tab="endpoints"><svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#route"></use></svg>Routes <em id="countEndpoints">0</em></button>
+        <button class="tab" type="button" data-tab="findings"><svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#shield-alert"></use></svg>Data <em id="countFindings">0</em></button>
+        <button class="tab" type="button" data-tab="sources"><svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#file-search"></use></svg>Sources <em id="countSources">0</em></button>
+        <button class="tab" type="button" data-tab="archive"><svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#server"></use></svg>Archive <em id="countArchive">0</em></button>
       </nav>
-      <div class="toolbar"><input id="filter" class="filter" placeholder="Filter results"><div class="export-tools"><select id="format" aria-label="Export format"><option value="json">JSON</option><option value="csv">CSV</option><option value="txt">TXT</option></select><button id="export" type="button" class="export-button">Export</button></div></div>
+
+      <div class="toolbar">
+        <div class="filter-field">
+          <svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#search"></use></svg>
+          <input id="filter" class="filter" type="search" placeholder="Filter results" aria-label="Filter results" autocomplete="off">
+        </div>
+        <div class="toolbar-actions">
+          <button id="copyTab" class="toolbar-btn btn-icon" type="button" title="Copy tab contents" aria-label="Copy tab contents">
+            <svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#copy"></use></svg>
+          </button>
+          <div class="export-dropdown" id="exportDropdown">
+            <button id="exportToggle" class="toolbar-btn export-toggle" type="button" aria-haspopup="true" aria-expanded="false" title="Export tab contents">
+              <span>Export</span>
+              <svg class="ui-icon chevron" aria-hidden="true"><use href="icons/ui/sprite.svg#chevron-down"></use></svg>
+            </button>
+            <div id="exportMenu" class="export-menu" role="menu" hidden>
+              <button type="button" class="export-item" role="menuitem" data-export-format="json">Export as JSON</button>
+              <button type="button" class="export-item" role="menuitem" data-export-format="csv">Export as CSV</button>
+              <button type="button" class="export-item" role="menuitem" data-export-format="txt">Export as TXT</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="panel" id="panel"></div>
     </section>
   </main>
-  <footer><span>Results saved in this browser</span><button id="exportTop" type="button">Export JSON <svg class="ui-icon"><use href="icons/ui/sprite.svg#download"></use></svg></button></footer>
+
+  <footer>
+    <span>Results saved in this browser</span>
+    <button id="exportTop" type="button" class="btn btn-ghost">
+      Export JSON
+      <svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#download"></use></svg>
+    </button>
+  </footer>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script type="module" src="app.js"></script>
 </body>

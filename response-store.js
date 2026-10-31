@@ -111,6 +111,44 @@ export async function getAllArchivedResponses() {
   });
 }
 
+export async function getArchivedResponsesBatch(limit = 25) {
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readonly");
+    const request = tx.objectStore(STORE).openCursor();
+    const rows = [];
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor || rows.length >= limit) {
+        resolve(rows);
+        return;
+      }
+      rows.push(cursor.value);
+      cursor.continue();
+    };
+    request.onerror = () => reject(request.error);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+export async function deleteArchivedResponses(ids) {
+  if (!ids?.length) return;
+  const db = await openDatabase();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    const store = tx.objectStore(STORE);
+    for (const id of ids) {
+      store.delete(Number(id));
+    }
+    tx.oncomplete = () => {
+      resolve();
+      notifyArchiveChanged();
+    };
+    tx.onerror = () => reject(tx.error || new Error("Failed to delete archived responses."));
+    tx.onabort = () => reject(tx.error || new Error("Archive deletion was interrupted."));
+  });
+}
+
 export async function importArchivedResponses(records) {
   if (!Array.isArray(records)) throw new Error("The archive file does not contain a records list.");
   const db = await openDatabase();
@@ -132,3 +170,4 @@ export async function importArchivedResponses(records) {
     tx.onabort = () => reject(tx.error || new Error("Import was interrupted."));
   });
 }
+

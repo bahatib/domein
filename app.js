@@ -7,7 +7,20 @@ const icon = (name, cls = "ui-icon") => `<svg class="${cls}" aria-hidden="true">
 let partialRenderPending = false;
 
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
-const toast = (message) => { const el = $("toast"); el.textContent = message; el.classList.add("show"); setTimeout(() => el.classList.remove("show"), 2800); };
+let toastTimer = null;
+const toast = (message) => {
+  const el = $("toast");
+  if (!el) return;
+  if (toastTimer) clearTimeout(toastTimer);
+  el.textContent = message;
+  el.classList.add("show");
+  toastTimer = setTimeout(() => {
+    el.classList.remove("show");
+    setTimeout(() => {
+      if (!el.classList.contains("show")) el.textContent = "";
+    }, 300);
+  }, 3500);
+};
 function setStatus(main, detail) {
   $("statStatus").textContent = main;
   const status = document.querySelector(".header-state");
@@ -93,7 +106,7 @@ function findingsByType(items, maxTypes = Infinity, maxRows = Infinity) {
   for (const item of items) { if (!groups.has(item.type)) groups.set(item.type, []); groups.get(item.type).push(item); }
   return [...groups.entries()].slice(0, maxTypes).map(([type, matches]) => section(type, matches.length, matches.slice(0, maxRows).map(item => row(item.value, `Source: ${item.source}${item.country ? ` · ${item.country}` : ""}`, "REVIEW", "", item.value)).join(""))).join("");
 }
-async function copyToClipboard(value) {
+async function copyToClipboard(value, customToast = "Finding copied.") {
   try { await navigator.clipboard.writeText(value); }
   catch {
     const input = document.createElement("textarea"); input.value = value; input.style.position = "fixed"; input.style.opacity = "0";
@@ -101,7 +114,55 @@ async function copyToClipboard(value) {
     const copied = document.execCommand("copy"); input.remove();
     if (!copied) throw new Error("Clipboard access is unavailable.");
   }
-  toast("Finding copied.");
+  if (customToast) toast(customToast);
+}
+
+async function copyCurrentTab() {
+  if (!state.data) { toast("Run a scan before copying results."); return; }
+  const d = state.data;
+  const tab = state.tab;
+  const q = ($("filter")?.value || "").trim().toLowerCase();
+  const match = value => !q || String(value).toLowerCase().includes(q);
+
+  if (tab === "subdomains") {
+    const hosts = (d.subdomains || []).filter(x => match(x));
+    if (!hosts.length) { toast(q ? "No matching hosts displayed to copy." : "No hosts to copy."); return; }
+    await copyToClipboard(hosts.join("\n"), `Copied ${hosts.length} hosts to clipboard.`);
+  } else if (tab === "endpoints") {
+    const endpoints = (d.endpoints || []).filter(x => match(`${x.url} ${x.source} ${x.kind}`));
+    if (!endpoints.length) { toast(q ? "No matching routes displayed to copy." : "No routes to copy."); return; }
+    await copyToClipboard(endpoints.map(e => e.url).join("\n"), `Copied ${endpoints.length} routes to clipboard.`);
+  } else if (tab === "findings") {
+    const indicators = (d.indicators || []).filter(x => match(`${x.type} ${x.value} ${x.source}`));
+    if (!indicators.length) { toast(q ? "No matching findings displayed to copy." : "No findings to copy."); return; }
+    await copyToClipboard(indicators.map(i => `${i.type}: ${i.value} — ${i.source}`).join("\n"), `Copied ${indicators.length} findings to clipboard.`);
+  } else if (tab === "sources") {
+    const sources = (d.sourceFiles || []).filter(f => match(`${f.url} ${f.kind} ${f.source}`));
+    if (!sources.length) { toast(q ? "No matching source files displayed to copy." : "No source files to copy."); return; }
+    await copyToClipboard(sources.map(f => `${f.kind}: ${f.url} (${f.bytes} B)`).join("\n"), `Copied ${sources.length} sources to clipboard.`);
+  } else if (tab === "archive") {
+    toast("Use 'Export archive' in the toolbar to download responses.");
+  } else {
+    const subs = (d.subdomains || []).filter(x => match(x));
+    const eps = (d.endpoints || []).filter(x => match(`${x.url} ${x.source} ${x.kind}`));
+    const inds = (d.indicators || []).filter(x => match(`${x.type} ${x.value} ${x.source}`));
+    const text = [
+      `Domein Research: ${d.root}`,
+      `Completed: ${new Date(d.completed || d.started).toLocaleString()}`,
+      `Hosts (${subs.length}):`,
+      ...subs.slice(0, 50),
+      ...(subs.length > 50 ? [`...and ${subs.length - 50} more`] : []),
+      ``,
+      `Routes (${eps.length}):`,
+      ...eps.slice(0, 50).map(e => `${e.url} [${e.kind}]`),
+      ...(eps.length > 50 ? [`...and ${eps.length - 50} more`] : []),
+      ``,
+      `Findings (${inds.length}):`,
+      ...inds.slice(0, 50).map(i => `${i.type}: ${i.value}`),
+      ...(inds.length > 50 ? [`...and ${inds.length - 50} more`] : [])
+    ].join("\n");
+    await copyToClipboard(text, "Copied scan overview to clipboard.");
+  }
 }
 function render() {
   if (state.tab === "archive") { void renderArchive(); return; }
@@ -146,7 +207,7 @@ async function renderArchive() {
       ? `<div class="archive-loading"><svg class="ui-icon spin"><use href="icons/ui/sprite.svg#loader-circle"></use></svg><strong>Processing responses…</strong><span>New records will appear here as the scan runs.</span></div>`
       : `<div class="empty">${total ? "No archived responses match this filter." : "No responses archived yet. Run a scan to start building the local archive."}</div>`;
     const scanStatus = state.busy || state.autoScanning ? `<span class="archive-progress"><svg class="ui-icon spin"><use href="icons/ui/sprite.svg#loader-circle"></use></svg> Processing</span>` : "";
-    panel.innerHTML = `<div class="archive-toolbar"><span>${total} responses stored · newest 100 shown ${scanStatus}</span><span><button class="archive-export" type="button" data-archive-action="import">Import JSON</button> <button class="archive-export" type="button" data-archive-action="export">Export archive</button></span></div><input id="archive-file" type="file" accept="application/json,.json" hidden><div>${list || emptyMessage}</div>`;
+    panel.innerHTML = `<div class="archive-toolbar"><span>${total} responses stored · newest 100 shown ${scanStatus}</span><span><button class="archive-export" type="button" data-archive-action="sync-aws" style="color:var(--brand-accent,#159f70);font-weight:600;">Sync to AWS</button> <button class="archive-export" type="button" data-archive-action="import">Import JSON</button> <button class="archive-export" type="button" data-archive-action="export">Export archive</button></span></div><input id="archive-file" type="file" accept="application/json,.json" hidden><div>${list || emptyMessage}</div>`;
   } catch (error) { panel.innerHTML = `<div class="notice">Could not read the response archive: ${escapeHtml(error.message)}</div>`; }
 }
 function formatBytes(value) {
@@ -204,17 +265,99 @@ async function importResponseArchive(file) {
 function exportData(format) {
   if (!state.data) { toast("Run a scan before exporting."); return; }
   const d = state.data;
-  let content, mime, ext;
-  if (format === "json") { content = JSON.stringify(d, null, 2); mime = "application/json"; ext = "json"; }
-  else if (format === "csv") {
-    const rows = [["category","value","source","details"]];
-    for (const host of d.subdomains) rows.push(["subdomain",host,"certificate transparency",d.liveHosts.includes(host)?"responds":"not verified"]);
-    for (const ep of d.endpoints) rows.push(["endpoint",ep.url,ep.source,ep.kind]);
-    for (const i of d.indicators) rows.push([`indicator:${i.type}`,i.value,i.source,i.context]);
-    for (const file of (d.sourceFiles || [])) rows.push([`source:${file.kind}`,file.url,file.source,`${file.bytes} bytes`]);
-    content = rows.map(r => r.map(v => { const s = String(v ?? "").replace(/[\r\n]+/g," "); return `"${(/^[=+@\-]/.test(s) ? "'" : "") + s.replace(/"/g,'""')}"`; }).join(",")).join("\r\n"); mime = "text/csv;charset=utf-8"; ext = "csv";
-  } else { content = [`Domein Research Report`, `Scope: ${d.root}`, `Started: ${d.started}`, `Completed: ${d.completed}`, `Source files scanned: ${d.sourceFilesScanned || 0}`, `Source maps parsed: ${d.sourceMapsScanned || 0}`, `Source scan limit reached: ${d.sourceScanLimited || d.hostScanLimited ? "yes" : "no"}`, `Source inventory shortened: ${d.sourceInventoryLimited ? "yes" : "no"}`, ``, `SUBDOMAINS (${d.subdomains.length})`, ...d.subdomains, ``, `ENDPOINT REFERENCES (${d.endpoints.length})`, ...d.endpoints.map(e => `${e.url} [${e.kind}] — ${e.source}`), ``, `SOURCE FILES (${d.sourceFiles?.length || 0})`, ...(d.sourceFiles || []).map(f => `${f.kind}: ${f.url} — ${f.bytes} bytes — ${f.source}`), ``, `SENSITIVE DATA CANDIDATES (${d.indicators.length})`, ...d.indicators.map(i => `${i.type}: ${i.value} — ${i.source}`), ``, `SWAGGER / OPENAPI SIGNALS`, ...d.swagger].join("\n"); mime = "text/plain;charset=utf-8"; ext = "txt"; }
-  const blob = new Blob([content], { type: mime }), url = URL.createObjectURL(blob), a = document.createElement("a"); a.href = url; a.download = `domein-${d.root}-${new Date().toISOString().slice(0,10)}.${ext}`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1500); toast(`${ext.toUpperCase()} report exported.`);
+  const tab = state.tab;
+  const q = ($("filter")?.value || "").trim().toLowerCase();
+  const match = value => !q || String(value).toLowerCase().includes(q);
+  let content, mime, ext, filename;
+
+  if (tab === "subdomains") {
+    filename = `domein-${d.root}-hosts`;
+    const hosts = (d.subdomains || []).filter(x => match(x));
+    if (format === "json") {
+      content = JSON.stringify({ root: d.root, tab: "hosts", count: hosts.length, hosts: hosts.map(h => ({ host: h, responsive: d.liveHosts.includes(h) })) }, null, 2);
+      mime = "application/json"; ext = "json";
+    } else if (format === "csv") {
+      const rows = [["host", "status", "source"]];
+      for (const h of hosts) rows.push([h, d.liveHosts.includes(h) ? "responsive" : "not verified", "certificate transparency"]);
+      content = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+      mime = "text/csv;charset=utf-8"; ext = "csv";
+    } else {
+      content = hosts.join("\n");
+      mime = "text/plain;charset=utf-8"; ext = "txt";
+    }
+  } else if (tab === "endpoints") {
+    filename = `domein-${d.root}-routes`;
+    const endpoints = (d.endpoints || []).filter(x => match(`${x.url} ${x.source} ${x.kind}`));
+    if (format === "json") {
+      content = JSON.stringify({ root: d.root, tab: "routes", count: endpoints.length, routes: endpoints }, null, 2);
+      mime = "application/json"; ext = "json";
+    } else if (format === "csv") {
+      const rows = [["url", "kind", "source"]];
+      for (const ep of endpoints) rows.push([ep.url, ep.kind, ep.source]);
+      content = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+      mime = "text/csv;charset=utf-8"; ext = "csv";
+    } else {
+      content = endpoints.map(e => `${e.url} [${e.kind}] — ${e.source}`).join("\n");
+      mime = "text/plain;charset=utf-8"; ext = "txt";
+    }
+  } else if (tab === "findings") {
+    filename = `domein-${d.root}-findings`;
+    const indicators = (d.indicators || []).filter(x => match(`${x.type} ${x.value} ${x.source}`));
+    if (format === "json") {
+      content = JSON.stringify({ root: d.root, tab: "findings", count: indicators.length, findings: indicators }, null, 2);
+      mime = "application/json"; ext = "json";
+    } else if (format === "csv") {
+      const rows = [["type", "value", "source", "context"]];
+      for (const i of indicators) rows.push([i.type, i.value, i.source, i.context || ""]);
+      content = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+      mime = "text/csv;charset=utf-8"; ext = "csv";
+    } else {
+      content = indicators.map(i => `${i.type}: ${i.value} — ${i.source}`).join("\n");
+      mime = "text/plain;charset=utf-8"; ext = "txt";
+    }
+  } else if (tab === "sources") {
+    filename = `domein-${d.root}-sources`;
+    const sources = (d.sourceFiles || []).filter(f => match(`${f.url} ${f.kind} ${f.source}`));
+    if (format === "json") {
+      content = JSON.stringify({ root: d.root, tab: "sources", count: sources.length, sources }, null, 2);
+      mime = "application/json"; ext = "json";
+    } else if (format === "csv") {
+      const rows = [["kind", "url", "bytes", "source"]];
+      for (const f of sources) rows.push([f.kind, f.url, f.bytes, f.source]);
+      content = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+      mime = "text/csv;charset=utf-8"; ext = "csv";
+    } else {
+      content = sources.map(f => `${f.kind}: ${f.url} — ${f.bytes} bytes — ${f.source}`).join("\n");
+      mime = "text/plain;charset=utf-8"; ext = "txt";
+    }
+  } else if (tab === "archive") {
+    exportResponseArchive();
+    return;
+  } else {
+    // Overview: full export
+    filename = `domein-${d.root}-full`;
+    if (format === "json") { content = JSON.stringify(d, null, 2); mime = "application/json"; ext = "json"; }
+    else if (format === "csv") {
+      const rows = [["category","value","source","details"]];
+      for (const host of d.subdomains) rows.push(["subdomain",host,"certificate transparency",d.liveHosts.includes(host)?"responds":"not verified"]);
+      for (const ep of d.endpoints) rows.push(["endpoint",ep.url,ep.source,ep.kind]);
+      for (const i of d.indicators) rows.push([`indicator:${i.type}`,i.value,i.source,i.context]);
+      for (const file of (d.sourceFiles || [])) rows.push([`source:${file.kind}`,file.url,file.source,`${file.bytes} bytes`]);
+      content = rows.map(r => r.map(v => `"${String(v ?? "").replace(/[\r\n]+/g," ").replace(/"/g,'""')}"`).join(",")).join("\r\n"); mime = "text/csv;charset=utf-8"; ext = "csv";
+    } else {
+      content = [`Domein Research Report`, `Scope: ${d.root}`, `Started: ${d.started}`, `Completed: ${d.completed}`, `Source files scanned: ${d.sourceFilesScanned || 0}`, `Source maps parsed: ${d.sourceMapsScanned || 0}`, ``, `SUBDOMAINS (${d.subdomains.length})`, ...d.subdomains, ``, `ENDPOINT REFERENCES (${d.endpoints.length})`, ...d.endpoints.map(e => `${e.url} [${e.kind}] — ${e.source}`), ``, `SOURCE FILES (${d.sourceFiles?.length || 0})`, ...(d.sourceFiles || []).map(f => `${f.kind}: ${f.url} — ${f.bytes} bytes — ${f.source}`), ``, `SENSITIVE DATA CANDIDATES (${d.indicators.length})`, ...d.indicators.map(i => `${i.type}: ${i.value} — ${i.source}`), ``, `SWAGGER / OPENAPI SIGNALS`, ...d.swagger].join("\n");
+      mime = "text/plain;charset=utf-8"; ext = "txt";
+    }
+  }
+
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${filename}-${new Date().toISOString().slice(0,10)}.${ext}`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  toast(`Exported ${tab === "overview" ? "full report" : tab} as ${ext.toUpperCase()}.`);
 }
 async function useActiveTab() {
   try {
@@ -312,7 +455,39 @@ async function init() {
     } catch (error) { toast(error.message || "Could not open this result."); }
   });
   $("tabs").addEventListener("click", e => { const button = e.target.closest("[data-tab]"); if (!button) return; state.tab = button.dataset.tab; state.archiveOpenId = null; state.archiveDetail = null; document.querySelectorAll(".tab").forEach(t => { const selected = t === button; t.classList.toggle("selected", selected); t.setAttribute("aria-pressed", String(selected)); }); render(); });
-  $("filter").addEventListener("input", render); $("export").addEventListener("click", () => exportData($("format").value)); $("exportTop").addEventListener("click", () => exportData("json"));
+  $("filter").addEventListener("input", render);
+  $("exportTop")?.addEventListener("click", () => exportData("json"));
+  $("copyTab")?.addEventListener("click", () => { void copyCurrentTab().catch(err => toast(err.message)); });
+
+  const exportToggle = $("exportToggle");
+  const exportMenu = $("exportMenu");
+  exportToggle?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isHidden = exportMenu.hasAttribute("hidden");
+    if (isHidden) {
+      exportMenu.removeAttribute("hidden");
+      exportToggle.setAttribute("aria-expanded", "true");
+    } else {
+      exportMenu.setAttribute("hidden", "");
+      exportToggle.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  exportMenu?.addEventListener("click", (e) => {
+    const item = e.target.closest("[data-export-format]");
+    if (!item) return;
+    const format = item.dataset.exportFormat;
+    exportMenu.setAttribute("hidden", "");
+    exportToggle?.setAttribute("aria-expanded", "false");
+    exportData(format);
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#exportDropdown")) {
+      exportMenu?.setAttribute("hidden", "");
+      exportToggle?.setAttribute("aria-expanded", "false");
+    }
+  });
   $("panel").addEventListener("click", e => {
     const recordButton = e.target.closest("[data-archive-id]");
     if (recordButton) { const id = Number(recordButton.dataset.archiveId); void showArchiveRecord(state.archiveOpenId === id ? null : id); return; }
@@ -320,6 +495,10 @@ async function init() {
     if (action === "export") void exportResponseArchive();
     else if (action === "download-record") void exportResponseArchive(e.target.closest("[data-record-id]").dataset.recordId);
     else if (action === "import") $("archive-file")?.click();
+    else if (action === "sync-aws") {
+      toast("Syncing archive to AWS database...");
+      chrome.runtime.sendMessage({ type: "domein-sync-archive-now" });
+    }
   });
   $("panel").addEventListener("change", e => { if (e.target.id === "archive-file" && e.target.files?.[0]) void importResponseArchive(e.target.files[0]); });
   chrome.runtime.sendMessage({ type: "domein-get-active-scans" }).then(({ roots = [] } = {}) => {

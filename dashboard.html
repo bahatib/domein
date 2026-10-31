@@ -3,116 +3,134 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#f4f7fb">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#f3f6fa" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0e141c" media="(prefers-color-scheme: dark)">
     <title>Domein Research</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <main class="shell">
+
+      <!-- Top bar: identity + global actions -->
       <header class="topbar">
-        <div class="brand">
+        <a class="brand" href="dashboard.html">
           <img class="brand-mark" src="icons/logo.png" alt="">
-          <div class="brand-copy">
-            <div class="eyebrow">RESEARCH WORKSPACE</div>
-            <h1>Domein <span>Research</span></h1>
-          </div>
-        </div>
-        <div class="top-actions">
-          <span class="local-pill"><i aria-hidden="true"></i> Results stored locally</span>
-          <button id="exportTop" class="button subtle" type="button">Export report <span aria-hidden="true">↓</span></button>
+          <span class="brand-name">Domein Research</span>
+        </a>
+        <div class="topbar-actions">
+          <span class="storage-note">
+            <svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#server"></use></svg>
+            Stored in this browser
+          </span>
+          <button id="exportTop" class="btn btn-ghost" type="button">
+            <svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#download"></use></svg>
+            Export report
+          </button>
         </div>
       </header>
 
-      <section class="hero" aria-labelledby="hero-title">
-        <div class="hero-copy">
-          <h2 id="hero-title">Subdomains and endpoints</h2>
+      <!-- Scope: the one place the page is loud -->
+      <section class="scope" aria-labelledby="scope-title">
+        <div class="scope-intro">
+          <h1 id="scope-title">Map the surface of a domain you’re authorized to assess</h1>
+          <p>Enter a root domain. Domein collects its subdomains from public certificate logs, lists the routes referenced in pages and scripts, and flags sensitive patterns — all inside this browser.</p>
         </div>
-        <div class="hero-orbit" aria-hidden="true"><span></span><span></span><span></span><i></i></div>
-      </section>
 
-      <section class="scope-card" aria-labelledby="scope-title">
-        <div class="scope-heading">
-          <div>
-            <div class="eyebrow">NEW ASSESSMENT</div>
-            <h3 id="scope-title">Define your authorized scope</h3>
-          </div>
-          <span class="scope-lock">
-            <svg aria-hidden="true" viewBox="0 0 20 20"><rect x="4" y="8" width="12" height="9" rx="2"></rect><path d="M6.5 8V6a3.5 3.5 0 0 1 7 0v2"></path></svg>
-            Access is requested when discovery starts
-          </span>
-        </div>
-        <div class="scope-form">
-          <div class="input-wrap">
-            <svg aria-hidden="true" viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.5"></circle><path d="m13 13 4 4"></path></svg>
+        <form class="scope-form" onsubmit="return false">
+          <div class="target-field">
+            <svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#search"></use></svg>
             <label class="sr-only" for="domain">Root domain</label>
-            <input id="domain" placeholder="Enter a root domain, e.g. example.com" autocomplete="off" spellcheck="false">
-            <button id="activeTab" class="icon-button" type="button" title="Use current tab domain" aria-label="Use current tab domain">
-              <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M5 15 15 5M6 5h9v9"></path></svg>
+            <input id="domain" type="text" inputmode="url" placeholder="example.com" autocomplete="off" autocapitalize="off" spellcheck="false">
+            <button id="activeTab" class="btn-icon" type="button" title="Use the current tab’s domain" aria-label="Use the current tab’s domain">
+              <svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#scan-search"></use></svg>
             </button>
           </div>
-          <button id="start" class="button primary" type="button"><span>Start discovery</span><b aria-hidden="true">→</b></button>
-        </div>
-        <div class="scope-bottom">
-          <label class="authorize"><input id="authorized" type="checkbox" checked disabled><span>I own this domain or have written authorization to assess it.</span></label>
-          <div class="scope-meta">Chrome requests access only for this root and its subdomains.</div>
+          <button id="start" class="btn btn-primary btn-lg" type="button">
+            <span>Start discovery</span>
+            <svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#arrow-right"></use></svg>
+          </button>
+        </form>
+
+        <div class="scope-terms">
+          <label class="authorize">
+            <input id="authorized" type="checkbox" checked disabled>
+            <span>I own this domain or have written authorization to assess it.</span>
+          </label>
+          <p class="scope-permission">
+            <svg class="ui-icon" aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="8.5" width="12" height="8.5" rx="2"></rect><path d="M6.5 8.5V6.5a3.5 3.5 0 0 1 7 0v2"></path></svg>
+            Chrome asks for access to this root and its subdomains only when discovery starts.
+          </p>
         </div>
       </section>
 
-      <section class="stats" aria-label="Assessment summary">
-        <div class="stat">
-          <span>SUBDOMAINS</span>
-          <strong id="statSubs">—</strong>
-          <small>From public certificate data</small>
+      <!-- Summary strip -->
+      <section class="summary" aria-label="Assessment summary">
+        <div class="metric">
+          <span class="metric-label">Subdomains</span>
+          <strong id="statSubs" class="metric-value">—</strong>
+          <small>from public certificate data</small>
         </div>
-        <div class="stat">
-          <span>ENDPOINTS</span>
-          <strong id="statEndpoints">—</strong>
-          <small>References in pages and scripts</small>
+        <div class="metric">
+          <span class="metric-label">Endpoints</span>
+          <strong id="statEndpoints" class="metric-value">—</strong>
+          <small>referenced in pages and scripts</small>
         </div>
-        <div class="stat">
-          <span>INDICATORS</span>
-          <strong id="statIndicators">—</strong>
-          <small>Local pattern matches</small>
+        <div class="metric">
+          <span class="metric-label">Indicators</span>
+          <strong id="statIndicators" class="metric-value">—</strong>
+          <small>local pattern matches</small>
         </div>
-        <div class="stat stat-status">
-          <span>ASSESSMENT STATUS</span>
-          <strong id="statStatus" class="status-text" aria-live="polite">Ready</strong>
+        <div class="metric metric-status">
+          <span class="metric-label">Status</span>
+          <span class="state" data-state="ready">
+            <i aria-hidden="true"></i>
+            <strong id="statStatus" class="status-text" aria-live="polite">Ready</strong>
+          </span>
           <small id="statusDetail">Waiting for a target</small>
         </div>
       </section>
 
-      <section class="workspace" aria-label="Assessment results">
-        <div class="workspace-toolbar">
-          <nav class="tabs" id="tabs" role="group" aria-label="Filter report sections">
+      <!-- Results -->
+      <section class="results" aria-label="Assessment results">
+        <div class="results-head">
+          <nav class="tabs" id="tabs" role="group" aria-label="Report sections">
             <button class="tab selected" type="button" data-tab="overview" aria-pressed="true">Overview <em id="countOverview">0</em></button>
             <button class="tab" type="button" data-tab="subdomains" aria-pressed="false">Subdomains <em id="countSubdomains">0</em></button>
             <button class="tab" type="button" data-tab="endpoints" aria-pressed="false">Endpoints <em id="countEndpoints">0</em></button>
             <button class="tab" type="button" data-tab="findings" aria-pressed="false">Sensitive data <em id="countFindings">0</em></button>
           </nav>
-          <div class="table-actions">
-            <label class="sr-only" for="filter">Filter results</label>
-            <div class="filter-wrap">
-              <svg aria-hidden="true" viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.5"></circle><path d="m13 13 4 4"></path></svg>
-              <input id="filter" class="filter" placeholder="Filter results">
+
+          <div class="results-tools">
+            <div class="filter-field">
+              <svg class="ui-icon" aria-hidden="true"><use href="icons/ui/sprite.svg#search"></use></svg>
+              <label class="sr-only" for="filter">Filter results</label>
+              <input id="filter" class="filter" type="search" placeholder="Filter results" autocomplete="off">
             </div>
-            <label class="sr-only" for="format">Export format</label>
-            <select id="format" class="format-select">
-              <option value="json">JSON</option>
-              <option value="csv">CSV</option>
-              <option value="txt">TXT</option>
-            </select>
-            <button id="export" class="button export" type="button">Export</button>
+            <div class="export-group">
+              <label class="sr-only" for="format">Export format</label>
+              <select id="format" class="select">
+                <option value="json">JSON</option>
+                <option value="csv">CSV</option>
+                <option value="txt">TXT</option>
+              </select>
+              <button id="export" class="btn btn-secondary" type="button">Export</button>
+            </div>
           </div>
         </div>
+
         <div class="panel" id="panel" aria-live="polite" aria-relevant="additions text"></div>
       </section>
 
-      <footer>
-        <span class="footer-brand">DOMEIN <b>RESEARCH</b></span>
-        <span class="footer-note">Results stay in this browser unless you export them.</span>
-        <a href="README.md">Documentation <span aria-hidden="true">↗</span></a>
+      <footer class="footer">
+        <span>Results stay in this browser until you export them.</span>
+        <a href="README.md">Documentation</a>
       </footer>
     </main>
+
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src="app.js"></script>
   </body>

@@ -7,7 +7,7 @@ A local Manifest V3 browser extension for authorized attack-surface research. It
 1. Open `chrome://extensions` and enable Developer mode.
 2. Choose **Load unpacked** and select this folder.
 3. Click the Domein icon in Chrome’s toolbar to open its persistent right-side panel. It fills in the current page’s domain and displays saved results.
-4. The authorization indicator stays enabled, so scanning does not require checkbox confirmation. Domein uses the same broad host-access pattern as FindSomething (`<all_urls>`): Chrome asks for website access when you install or reload the updated extension, then scans do not trigger a separate per-domain prompt. To change the grant later, open `chrome://extensions` → Domein Research → **Details** → **Site access**.
+4. The authorization indicator stays enabled, so scanning does not require checkbox confirmation. Domein requests standard extension host permissions (`<all_urls>`): Chrome asks for website access when you install or reload the extension, then scans do not trigger a separate per-domain prompt. To change the grant later, open `chrome://extensions` → Domein Research → **Details** → **Site access**.
 
 The background service worker automatically scans HTTP(S) sites as their pages finish loading, even while the side panel is closed. It skips a domain with a scan from the last 30 minutes. To keep browsing scans bounded, automatic runs inspect up to 20 hosts, 12 source files and 2 source maps per host; **Scan again** runs the full manual limits (up to 120 hosts, 40 source files and 5 maps per host). When the panel is open, hosts, routes and findings appear as they are discovered; the toolbar badge count increments during the scan.
 
@@ -125,8 +125,6 @@ Domein can automatically synchronize captured scan reports and archived HTTP res
 > **Maintaining Zero Cost Indefinitely:** Enable **DynamoDB TTL (Time-To-Live)** on the `DomeinScans` table for records of type `archived-response`. DynamoDB will automatically purge raw HTTP responses older than 60–90 days for free, keeping domain reports permanently while ensuring your 25 GB storage never runs out.
 
 ---
-
-This project is an independent implementation and does not copy FindSomething source code.
 
 Interface icons use the locally bundled Lucide SVG sprite in `icons/ui/`; its ISC license is included alongside the assets. The extension badge and panel logo use the supplied `icons/logo.png` navy-and-green branding.
 
